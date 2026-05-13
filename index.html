@@ -174,6 +174,10 @@ th.col-sun{background:#f5c0cb!important}
   .col-info-th{border-bottom:2.5px solid #333!important}
 }
 .print-title,.print-date{display:none}
+/* 閲覧モード */
+body.view-mode .edit-only{display:none!important}
+body.view-mode .app-header{background:#2c7a4b}
+body.view-mode .view-badge{display:inline-flex!important}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s,transform .3s;z-index:2000;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
@@ -182,17 +186,18 @@ th.col-sun{background:#f5c0cb!important}
 
 <div class="app-header no-print">
   <h1>■ PC搬入予定表</h1>
+    <span class="view-badge btn" style="display:none;background:#27ae60;color:#fff;font-size:11px;padding:3px 10px;border-radius:4px;cursor:default">👁 閲覧モード</span>
   <div class="header-right">
     <span class="autosave-indicator" id="autoSaveInd">✓ 自動保存</span>
     <span class="header-time" id="headerTime"></span>
-    <button class="btn btn-green" onclick="openAddModal()">＋ 新規物件</button>
-    <button class="btn btn-teal" onclick="saveData()">💾 保存</button>
-    <button class="btn btn-purple" onclick="exportJSON()">⬇ エクスポート</button>
-    <button class="btn btn-gray" onclick="archiveJSON()">📦 アーカイブ</button>
-    <button class="btn btn-purple" onclick="document.getElementById('importFile').click()">⬆ インポート</button>
+    <button class="btn btn-green edit-only" onclick="openAddModal()">＋ 新規物件</button>
+    <button class="btn btn-teal edit-only" onclick="saveData()">💾 保存</button>
+    <button class="btn btn-purple edit-only" onclick="exportJSON()">⬇ エクスポート</button>
+    <button class="btn btn-gray edit-only" onclick="archiveJSON()">📦 アーカイブ</button>
+    <button class="btn btn-purple edit-only" onclick="document.getElementById('importFile').click()">⬆ インポート</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
     <button class="btn btn-print" onclick="printSchedule()">🖨 印刷</button>
-    <button class="btn btn-blue" onclick="openSettings()">⚙ 設定</button>
+    <button class="btn btn-blue edit-only" onclick="openSettings()">⚙ 設定</button>
     <button class="btn btn-orange" onclick="openDiscord()">📢 Discord</button>
   </div>
 </div>
@@ -207,7 +212,7 @@ th.col-sun{background:#f5c0cb!important}
   <button class="btn btn-gray" onclick="prevPeriod()">◀ 前</button>
   <button class="btn btn-gray" onclick="nextPeriod()">次 ▶</button>
   <button class="btn btn-blue" onclick="goToday()">今日</button>
-  <button class="btn btn-green no-print" onclick="sortByPcDate()" title="PC着日順（空欄優先）">↕ 整列</button>
+  <button class="btn btn-green no-print edit-only" onclick="sortByPcDate()" title="PC着日順（空欄優先）">↕ 整列</button>
   <span id="periodLabel" style="font-size:11px;color:#555"></span>
 </div>
 
@@ -527,7 +532,10 @@ function loadData(){
   }catch(e){console.warn('load failed',e)}
 }
 let _ast=null;
-function scheduleAutoSave(){clearTimeout(_ast);_ast=setTimeout(saveData,2000)}
+function scheduleAutoSave(){
+  if(IS_VIEW_MODE)return;
+  clearTimeout(_ast);_ast=setTimeout(saveData,2000);
+}
 function showAutoSave(){
   const el=document.getElementById('autoSaveInd');
   el.classList.add('visible');setTimeout(()=>el.classList.remove('visible'),2500);
@@ -882,6 +890,7 @@ function onDragStart(e,ev){
 function onDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over')}
 function onDragLeave(e){e.currentTarget.classList.remove('drag-over')}
 function onDrop(e){
+  if(IS_VIEW_MODE)return; /* 閲覧モードはD&D無効 */
   e.preventDefault();e.currentTarget.classList.remove('drag-over');
   const td=e.currentTarget;
   const propId=parseInt(td.dataset.propid);
@@ -1304,14 +1313,44 @@ function updateTime(){
 }
 
 /* ===== 初期化 ===== */
-loadData();
-migratePcdate();
-if(!state.startDate)initStart();
-renderTable();
-setWeeks(state.weeks||3);
-setInterval(updateTime,30000);
-/* 祝日データをバックグラウンド取得（取得完了後に自動再描画） */
-fetchHolidays();
+const IS_VIEW_MODE=location.search.includes('view');
+
+async function init(){
+  if(IS_VIEW_MODE){
+    /* 閲覧モード: GitHubのJSONを自動読み込み */
+    document.body.classList.add('view-mode');
+    try{
+      /* 同じリポジトリのPC搬入予定表.jsonを取得 */
+      const base=location.href.replace(/\/[^/]*$|\?.*$/,'');
+      const res=await fetch(base+'/PC搬入予定表.json?t='+Date.now());
+      if(res.ok){
+        const saved=await res.json();
+        if(saved.startDate)saved.startDate=toDate(saved.startDate);
+        Object.assign(state,saved);state.dragData=null;
+        migratePcdate();
+        showToast('最新データを読み込みました');
+      } else {
+        showToast('データ読み込み失敗。管理者にご連絡ください。');
+      }
+    }catch(e){
+      showToast('データ読み込み失敗。管理者にご連絡ください。');
+    }
+    /* 閲覧モードではD&D・インライン編集・セル入力を無効化 */
+    window.onCellClick=function(){};
+    window.onBadgeDblClick=function(){};
+    window.openInlineEdit=function(){};
+  } else {
+    /* 編集モード: LocalStorageから読み込み */
+    loadData();
+    migratePcdate();
+  }
+  if(!state.startDate)initStart();
+  renderTable();
+  setWeeks(state.weeks||3);
+  setInterval(updateTime,30000);
+  fetchHolidays();
+}
+init();
 </script>
 </body>
 </html>
