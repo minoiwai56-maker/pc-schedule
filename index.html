@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC搬入予定表</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP','Meiryo',sans-serif;font-size:12px;background:#eef1f5;color:#222;min-height:100vh}
+.app-header{background:#6a9fc0;color:#fff;padding:8px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.app-header h1{font-size:16px;font-weight:700;letter-spacing:.05em;white-space:nowrap}
+.header-right{margin-left:auto;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.header-time{font-size:11px;opacity:.9;white-space:nowrap}
+.autosave-indicator{font-size:10px;color:#b6ffdf;opacity:0;transition:opacity .6s;white-space:nowrap}
+.autosave-indicator.visible{opacity:1}
+button.btn{border:none;border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:3px;transition:opacity .15s;white-space:nowrap}
+.btn-green{background:#27ae60;color:#fff}.btn-blue{background:#2980b9;color:#fff}
+.btn-orange{background:#e67e22;color:#fff}.btn-gray{background:#7f8c8d;color:#fff}
+.btn-red{background:#c0392b;color:#fff}.btn-teal{background:#16a085;color:#fff}
+.btn-purple{background:#8e44ad;color:#fff}.btn-print{background:#546e7a;color:#fff}
+.btn-edit{background:#f39c12;color:#fff}
+button.btn:hover{opacity:.85}
+.toolbar{background:#fff;border-bottom:1px solid #ddd;padding:6px 16px;display:flex;align-items:center;gap:6px;position:sticky;top:41px;z-index:99;flex-wrap:wrap}
+.week-toggle{display:flex;gap:3px}
+.week-btn{border:1px solid #aaa;background:#fff;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .15s;font-family:inherit;color:#333}
+.week-btn.active{background:#6a9fc0;color:#fff;border-color:#6a9fc0}
+.table-wrap{overflow-x:auto;padding:8px;min-height:200px}
+
+/* ===== SCHEDULE TABLE ===== */
+table.schedule{border-collapse:collapse;font-size:11px;width:100%;background:#fff;table-layout:auto;border:2px solid #555}
+table.schedule th,table.schedule td{border:1px solid #ccc;padding:1px 2px;white-space:nowrap;vertical-align:middle;overflow:hidden}
+table.schedule thead th{border-top:2px solid #555;border-bottom:1px solid #ccc}
+table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
+/* 太線クラス */
+.border-top-thick{border-top:2px solid #555!important}
+.border-bottom-thick{border-bottom:2px solid #555!important}
+.border-left-thick{border-left:2px solid #555!important}
+.border-right-thick{border-right:2px solid #555!important}
+.border-week{border-left:2px solid #4a7fa8!important}
+
+/* 情報列・ラベル列 sticky */
+.col-info-th{width:240px;min-width:240px;position:sticky;left:0;z-index:12;background:#a8c8de;border-right:2px solid #888!important;border-bottom:2.5px solid #333!important}
+.col-rowlabel-th{width:28px;min-width:28px;position:sticky;left:240px;z-index:12;background:#a8c8de;border-right:2px solid #888!important}
+.prop-info-cell{width:240px;min-width:240px;max-width:240px;background:#fff;padding:2px 4px 2px 6px;border-right:3px solid #4a7fa8;position:sticky;left:0;z-index:10;overflow:hidden}
+.row-label{width:28px;min-width:28px;max-width:28px;background:#f0f4f7;font-size:9px;color:#555;text-align:center;position:sticky;left:240px;z-index:10}
+
+/* 日曜列 */
+th.col-sun,td.col-sun{background:#fff0f4!important;width:22px!important;min-width:22px!important;max-width:22px!important;border-left:2px solid #b0b0b0!important}
+th.col-sun{background:#f5c0cb!important}
+
+/* カレンダーヘッダー */
+.header-date{text-align:center;font-size:10px;line-height:1.4;padding:2px 1px;color:#222;white-space:nowrap}
+.rokuyo{font-size:9px;color:#777;display:block}
+.sep-row td{height:0;background:transparent;border:none;border-top:2.5px solid #333;border-bottom:0;padding:0}
+.schedule-cell{text-align:center;padding:1px 2px;position:relative;color:#222}
+.schedule-cell:hover:not(.col-sun){background:#eef5fb}
+
+/* 物件概要セル内 */
+.prop-name{font-weight:700;color:#222;white-space:nowrap;overflow:hidden;line-height:1.2;background:#e3f0fa;padding:1px 3px;border-radius:2px}
+.prop-maker-line{color:#444;margin-top:0;line-height:1.2;display:flex;align-items:baseline;justify-content:space-between;gap:2px}
+.prop-meta{font-size:10px;color:#555;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-dates{font-size:10px;color:#333;margin-top:0;line-height:1.5;display:flex;flex-wrap:wrap;gap:0 5px}
+.pc-arrival{font-weight:700;color:#d4600a;font-size:15px}
+.date-label{color:#888;font-size:9px}
+.prop-note{font-size:10px;color:#555;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-staff{font-size:10px;color:#555;margin-top:0}
+.prop-delete-btn{position:absolute;right:2px;top:2px;background:none;border:none;color:#ccc;cursor:pointer;font-size:11px;line-height:1;padding:0;z-index:2}
+.prop-delete-btn:hover{color:#c0392b}
+
+/* 固定レンタカー行 */
+.rental-info-cell{width:240px;min-width:240px;max-width:240px;background:#e8f4fb;padding:3px 6px 3px 8px;border-right:3px solid #4a7fa8;position:sticky;left:0;z-index:10;font-weight:700;font-size:11px;color:#222}
+.rental-row-label{background:#d6eaf5;font-size:10px;color:#444;text-align:center;position:sticky;left:240px;z-index:10;width:28px;min-width:28px;max-width:28px}
+.rental-cell{background:#f0f8fd}
+.rental-sep td{height:3px;background:#c8d8e8;border-top:2.5px solid #333;border-bottom:2.5px solid #333;padding:0}
+
+/* インライン編集 */
+.editable{cursor:pointer;border-radius:2px;transition:background .1s}
+.editable:hover{background:#fff8e1;outline:1px dashed #f39c12}
+.inline-edit-overlay{position:fixed;inset:0;z-index:500;background:transparent}
+.inline-edit-popup{position:fixed;z-index:501;background:#fff;border:1px solid #6a9fc0;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);padding:10px 12px;min-width:220px;max-width:320px}
+.inline-edit-popup label{font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px}
+.inline-edit-popup input,.inline-edit-popup select{width:100%;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit;outline:none;color:#222}
+.inline-edit-popup input:focus,.inline-edit-popup select:focus{border-color:#6a9fc0;box-shadow:0 0 0 2px rgba(106,159,192,.2)}
+.inline-edit-popup .popup-footer{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}
+
+/* イベントバッジ */
+.cell-event{border-radius:3px;font-size:10px;font-weight:700;color:#222;text-align:center;padding:1px 3px;cursor:grab;user-select:none;display:block;white-space:nowrap;margin:1px auto}
+.cell-event:active{cursor:grabbing;opacity:.7}
+.event-pc{background:#fde8d0;border:1px solid #d4600a}.event-joto{background:#fdd9d5;border:1px solid #c0392b}.event-dodai{background:#eeddf5;border:1px solid #7d3c98}
+.cell-text{
+  display:block;font-size:10px;font-weight:600;color:#2e7d32;
+  background:#f1faf2;border-radius:2px;padding:0 2px;
+  border:1px solid #c8e6c9;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  cursor:pointer;margin:1px auto;text-align:center;
+}
+.cell-input-wrap{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  z-index:50;display:flex;align-items:center;justify-content:center;
+}
+.cell-input-wrap input{
+  width:90px;font-size:10px;font-family:inherit;
+  border:1px solid #6a9fc0;border-radius:3px;
+  padding:1px 3px;outline:none;background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+.dragging{opacity:.35}
+.drag-over{background:#d6eaf8!important;outline:2px dashed #6a9fc0}
+
+/* ===== MODALS ===== */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
+.modal{background:#fff;border-radius:8px;padding:20px;width:590px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.modal h2{font-size:15px;font-weight:700;margin-bottom:14px;color:#333;border-bottom:2px solid #6a9fc0;padding-bottom:6px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.form-group{display:flex;flex-direction:column;gap:3px}
+.form-group label{font-size:11px;font-weight:600;color:#555}
+.form-group input,.form-group select{border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit;outline:none;width:100%;color:#222}
+.form-group input:focus,.form-group select:focus{border-color:#6a9fc0;box-shadow:0 0 0 2px rgba(106,159,192,.2)}
+.form-group.full{grid-column:1/-1}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid #eee}
+.settings-section{margin-bottom:14px}
+.settings-section h3{font-size:12px;font-weight:700;color:#333;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #d5e3ef}
+.maker-list{border:1px solid #ddd;border-radius:4px;max-height:200px;overflow-y:auto}
+.maker-item{padding:6px 8px;border-bottom:1px solid #f0f0f0}
+.maker-item:last-child{border-bottom:none}
+.maker-view{display:flex;align-items:flex-start;gap:8px}
+.maker-name-disp{font-weight:700;font-size:11px;flex:1;color:#222}
+.maker-details{font-size:10px;color:#555;flex:2}
+.tag{display:inline-block;background:#ddeef8;color:#2c6e99;border-radius:3px;padding:1px 5px;font-size:10px;margin:1px}
+.staff-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;min-height:24px}
+.staff-tag{background:#ddeef8;color:#2c6e99;border-radius:3px;padding:2px 6px;font-size:10px;display:flex;align-items:center;gap:3px}
+.staff-tag button{background:none;border:none;cursor:pointer;color:#c0392b;font-size:10px;padding:0;line-height:1}
+.small-input{border:1px solid #ccc;border-radius:4px;padding:3px 6px;font-size:11px;font-family:inherit;outline:none;color:#222}
+.small-input:focus{border-color:#6a9fc0}
+.discord-preview{background:#36393f;color:#dcddde;border-radius:6px;padding:12px;font-size:12px;margin:10px 0;line-height:1.6}
+.discord-channel{color:#7289da;font-weight:700;font-size:11px;margin-bottom:6px}
+.notice{font-size:11px;color:#888;background:#f8f9fa;border-radius:4px;padding:6px 10px;margin-top:6px}
+
+/* ===== PRINT ===== */
+@media print{
+  @page{size:A3 landscape;margin:10mm 8mm}
+  body{background:#fff;font-size:10px;color:#000}
+  .app-header,.toolbar,.no-print{display:none!important}
+  .table-wrap{overflow:visible;padding:0}
+  table.schedule{font-size:9px;width:100%}
+  .col-info-th,.prop-info-cell,.rental-info-cell{position:static!important;width:175px!important;min-width:175px!important;max-width:175px!important}
+  .col-rowlabel-th,.row-label,.rental-row-label{position:static!important;width:20px!important;min-width:20px!important}
+  .prop-name{font-size:13px!important;line-height:1.2!important}
+  .pc-arrival{font-size:12px!important}
+  .prop-maker-line{font-size:11px!important;margin-top:0!important;line-height:1.3!important}
+  .prop-meta,.prop-note,.prop-dates,.prop-staff{font-size:8px!important;margin-top:0!important;line-height:1.3!important}
+  .prop-info-cell{padding:1px 3px!important}
+  .sep-row td{height:0!important;border-top:2px solid #333!important;border-bottom:none!important;padding:0!important;background:transparent!important}
+  table.schedule th,table.schedule td{padding:0 1px!important}
+  .rental-sep td{height:3px!important;background:#b8d8ec!important;border-top:2px solid #333!important;border-bottom:2px solid #333!important;padding:0!important}
+  th.header-date{font-size:9px;padding:1px}.rokuyo{font-size:8px}
+  table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
+  .cell-event{font-size:9px;padding:1px 2px;color:#222!important}
+  th.col-sun,td.col-sun{width:14px!important;min-width:14px!important;max-width:14px!important}
+  .prop-group{break-inside:avoid;page-break-inside:avoid}
+  .print-title{display:block!important;font-size:14px;font-weight:700;margin-bottom:4px;color:#333}
+  .print-date{display:block!important;font-size:10px;color:#666;margin-bottom:6px}
+  .prop-delete-btn,.editable:hover{display:none!important}
+  .inline-edit-popup,.inline-edit-overlay{display:none!important}
+  .cell-text{font-size:8px!important;padding:0 1px!important}
+  .cell-input-wrap{display:none!important}
+  .print-hide{display:none!important}
+  /* 未入力プレースホルダー（--、着日未設定など）を印刷非表示 */
+  .editable[style*="color:#aaa"],.editable[style*="color:#bbb"]{display:none!important}
+  .editable{cursor:default!important;background:none!important;outline:none!important}
+  th.col-sun{background:#fce8ec!important;color:#000!important}
+  td.col-sun{background:#fef4f6!important}
+  .col-info-th,.col-rowlabel-th{background:#aac4d8!important}
+  .col-info-th{border-bottom:2.5px solid #333!important}
+}
+.print-title,.print-date{display:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s,transform .3s;z-index:2000;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="app-header no-print">
+  <h1>■ PC搬入予定表</h1>
+  <div class="header-right">
+    <span class="autosave-indicator" id="autoSaveInd">✓ 自動保存</span>
+    <span class="header-time" id="headerTime"></span>
+    <button class="btn btn-green" onclick="openAddModal()">＋ 新規物件</button>
+    <button class="btn btn-teal" onclick="saveData()">💾 保存</button>
+    <button class="btn btn-purple" onclick="exportJSON()">⬇ エクスポート</button>
+    <button class="btn btn-gray" onclick="archiveJSON()">📦 アーカイブ</button>
+    <button class="btn btn-purple" onclick="document.getElementById('importFile').click()">⬆ インポート</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    <button class="btn btn-print" onclick="printSchedule()">🖨 印刷</button>
+    <button class="btn btn-blue" onclick="openSettings()">⚙ 設定</button>
+    <button class="btn btn-orange" onclick="openDiscord()">📢 Discord</button>
+  </div>
+</div>
+
+<div class="toolbar no-print">
+  <span style="font-size:11px;color:#555;font-weight:600">表示：</span>
+  <div class="week-toggle">
+    <button class="week-btn" id="wbtn2" onclick="setWeeks(2)">2週間</button>
+    <button class="week-btn active" id="wbtn3" onclick="setWeeks(3)">3週間</button>
+    <button class="week-btn" id="wbtn4" onclick="setWeeks(4)">4週間</button>
+  </div>
+  <button class="btn btn-gray" onclick="prevPeriod()">◀ 前</button>
+  <button class="btn btn-gray" onclick="nextPeriod()">次 ▶</button>
+  <button class="btn btn-blue" onclick="goToday()">今日</button>
+  <button class="btn btn-green no-print" onclick="sortByPcDate()" title="PC着日順（空欄優先）">↕ 整列</button>
+  <span id="periodLabel" style="font-size:11px;color:#555"></span>
+</div>
+
+<div class="table-wrap">
+  <div class="print-title">■ PC搬入予定表</div>
+  <div class="print-date" id="printDate"></div>
+  <table class="schedule" id="scheduleTable"></table>
+</div>
+
+<!-- インライン編集ポップアップ -->
+<div class="inline-edit-overlay" id="editOverlay" style="display:none" onclick="closeInlineEdit(false)"></div>
+<div class="inline-edit-popup" id="editPopup" style="display:none">
+  <label id="editLabel"></label>
+  <input type="text" id="editInput" style="display:none">
+  <input type="date" id="editDate" style="display:none">
+  <select id="editSelect" style="display:none"></select>
+  <div class="popup-footer">
+    <button class="btn btn-gray" style="padding:3px 10px" onclick="closeInlineEdit(false)">キャンセル</button>
+    <button class="btn btn-green" style="padding:3px 10px" onclick="closeInlineEdit(true)">保存</button>
+  </div>
+</div>
+
+<!-- 新規物件 -->
+<div class="modal-overlay" id="addModal" style="display:none">
+  <div class="modal">
+    <h2>新規物件登録</h2>
+    <div class="form-grid">
+      <div class="form-group full"><label>物件名 *</label><input type="text" id="f_name" placeholder="例：細見様邸"></div>
+      <div class="form-group"><label>工務店名</label>
+        <select id="f_maker" onchange="onMakerChange()"><option value="">-- 選択または下に手入力 --</option></select>
+        <input type="text" id="f_makerFree" placeholder="マスタ外の場合ここに手入力" style="margin-top:4px;font-size:11px">
+      </div>
+      <div class="form-group"><label>工務店担当</label><select id="f_makerStaff"><option value="">-- 選択 --</option></select></div>
+      <div class="form-group"><label>坪数</label><input type="text" id="f_tsubo" placeholder="例：35坪"></div>
+      <div class="form-group"><label>階数</label>
+        <select id="f_floors">
+          <option value="">-</option>
+          <option value="平屋">平屋</option>
+          <option value="2階">2階</option>
+          <option value="3階">3階</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>PC着日 <button type="button" class="btn btn-blue" style="padding:1px 8px;font-size:10px;margin-left:6px" onclick="addPcdateField()">＋追加</button></label>
+        <div id="f_pcdates_wrap">
+          <input type="date" class="f_pcdate_item" style="margin-bottom:3px;width:100%;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit">
+        </div>
+      </div>
+      <div class="form-group"><label>最終確認日</label><input type="date" id="f_finalCheck"></div>
+      <div class="form-group"><label>土台敷き日</label><input type="date" id="f_dodai"></div>
+      <div class="form-group"><label>上棟日</label><input type="date" id="f_joto"></div>
+      <div class="form-group"><label>営業担当</label><select id="f_sales"><option value="">-- 選択 --</option></select></div>
+      <div class="form-group"><label>PC担当</label><select id="f_pc"><option value="">-- 選択 --</option></select></div>
+      <div class="form-group full"><label>備考</label><input type="text" id="f_note" placeholder="備考"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('addModal')">キャンセル</button>
+      <button class="btn btn-green" onclick="saveProperty()">登録</button>
+    </div>
+  </div>
+</div>
+
+<!-- 設定 -->
+<div class="modal-overlay" id="settingsModal" style="display:none">
+  <div class="modal" style="width:660px">
+    <h2>⚙ 設定</h2>
+    <div class="settings-section">
+      <h3>工務店マスタ</h3>
+      <div class="maker-list" id="makerList"></div>
+      <div style="margin-top:10px;padding:10px;background:#f8f9fa;border-radius:6px">
+        <div style="font-size:11px;font-weight:600;margin-bottom:8px;color:#333">新規工務店追加</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div><label style="font-size:10px;color:#888">工務店名</label><br><input class="small-input" id="nm_makerName" placeholder="工務店名" style="width:100%"></div>
+          <div><label style="font-size:10px;color:#888">担当者（カンマ区切り）</label><br><input class="small-input" id="nm_staff" placeholder="山田,田中" style="width:100%"></div>
+          <div><label style="font-size:10px;color:#888">営業担当</label><br><input class="small-input" id="nm_sales" placeholder="営業担当名" style="width:100%"></div>
+          <div style="display:flex;gap:6px;align-items:flex-end">
+            <div style="flex:1"><label style="font-size:10px;color:#888">PC担当</label><br><input class="small-input" id="nm_pc" placeholder="PC担当名" style="width:100%"></div>
+            <button class="btn btn-green" onclick="addMaker()">追加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>弊社担当マスタ</h3>
+      <div style="display:flex;gap:16px">
+        <div style="flex:1">
+          <label style="font-size:10px;color:#888;font-weight:600">営業担当</label>
+          <div class="staff-list" id="salesList"></div>
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <input class="small-input" id="newSales" placeholder="入力してEnter または ＋" style="flex:1"
+              onkeydown="if(event.key==='Enter'){addStaff('sales');event.preventDefault()}">
+            <button class="btn btn-blue" onclick="addStaff('sales')">＋</button>
+          </div>
+        </div>
+        <div style="flex:1">
+          <label style="font-size:10px;color:#888;font-weight:600">PC担当</label>
+          <div class="staff-list" id="pcList"></div>
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <input class="small-input" id="newPc" placeholder="入力してEnter または ＋" style="flex:1"
+              onkeydown="if(event.key==='Enter'){addStaff('pc');event.preventDefault()}">
+            <button class="btn btn-blue" onclick="addStaff('pc')">＋</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-gray" onclick="closeModal('settingsModal')">閉じる</button></div>
+  </div>
+</div>
+
+<!-- 工務店編集 -->
+<div class="modal-overlay" id="makerEditModal" style="display:none">
+  <div class="modal" style="width:500px">
+    <h2>工務店情報を編集</h2>
+    <input type="hidden" id="em_idx">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="form-group"><label>工務店名</label><input type="text" id="em_name"></div>
+      <div class="form-group">
+        <label>担当者</label>
+        <div class="staff-list" id="em_staffList"></div>
+        <div style="display:flex;gap:4px;margin-top:6px">
+          <input class="small-input" id="em_newStaff" placeholder="担当者名を入力してEnter または ＋" style="flex:1"
+            onkeydown="if(event.key==='Enter'){addMakerStaff();event.preventDefault()}">
+          <button class="btn btn-blue" onclick="addMakerStaff()">＋</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px">
+        <div class="form-group" style="flex:1"><label>営業担当</label><input type="text" id="em_sales"></div>
+        <div class="form-group" style="flex:1"><label>PC担当</label><input type="text" id="em_pc"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('makerEditModal')">キャンセル</button>
+      <button class="btn btn-green" onclick="saveMakerEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Discord -->
+<div class="modal-overlay" id="discordModal" style="display:none">
+  <div class="modal" style="width:480px">
+    <h2>📢 Discord投稿</h2>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;font-weight:600;color:#555">Webhook URL</label>
+      <input type="text" id="webhookUrl" placeholder="https://discord.com/api/webhooks/..."
+        style="width:100%;margin-top:4px;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:11px;font-family:inherit">
+    </div>
+    <div class="discord-preview">
+      <div class="discord-channel"># pc-schedule</div>
+      <div>PC予定表　更新しました。<br>追加、変更、訂正ある場合はこちらのチャンネルにUPしてください。<br>ご確認お願い致します。</div>
+    </div>
+    <div class="notice">※ Discord サーバーで作成した Webhook URL を入力して投稿してください。</div>
+    <div class="modal-footer">
+      <button class="btn btn-gray" onclick="closeModal('discordModal')">キャンセル</button>
+      <button class="btn btn-orange" onclick="postDiscord()">投稿する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast no-print" id="toastEl"></div>
+<script>
+/* ===== 祝日 ===== */
+/* holidays-jp.github.io の公開JSONを取得。オフライン時は固定データにフォールバック */
+let HOLIDAYS={}; /* { 'YYYY-MM-DD': '祝日名' } */
+let _holidayFetched=false;
+
+/* 固定祝日フォールバック（2025〜2026年主要祝日） */
+const HOLIDAY_FALLBACK={
+  '2025-01-01':'元日','2025-01-13':'成人の日','2025-02-11':'建国記念の日',
+  '2025-02-23':'天皇誕生日','2025-02-24':'天皇誕生日 振替','2025-03-20':'春分の日',
+  '2025-04-29':'昭和の日','2025-05-03':'憲法記念日','2025-05-04':'みどりの日',
+  '2025-05-05':'こどもの日','2025-05-06':'こどもの日 振替','2025-07-21':'海の日',
+  '2025-08-11':'山の日','2025-09-15':'敬老の日','2025-09-23':'秋分の日',
+  '2025-10-13':'スポーツの日','2025-11-03':'文化の日','2025-11-23':'勤労感謝の日',
+  '2025-11-24':'勤労感謝の日 振替',
+  '2026-01-01':'元日','2026-01-12':'成人の日','2026-02-11':'建国記念の日',
+  '2026-02-23':'天皇誕生日','2026-03-20':'春分の日','2026-04-29':'昭和の日',
+  '2026-05-03':'憲法記念日','2026-05-04':'みどりの日','2026-05-05':'こどもの日',
+  '2026-05-06':'こどもの日 振替','2026-07-20':'海の日','2026-08-11':'山の日',
+  '2026-09-21':'敬老の日','2026-09-22':'国民の休日','2026-09-23':'秋分の日',
+  '2026-10-12':'スポーツの日','2026-11-03':'文化の日','2026-11-23':'勤労感謝の日',
+};
+
+async function fetchHolidays(){
+  if(_holidayFetched)return;
+  _holidayFetched=true;
+  try{
+    const r=await fetch('https://holidays-jp.github.io/api/v1/date.json',{cache:'force-cache'});
+    if(r.ok){
+      HOLIDAYS=await r.json();
+      renderTable(); /* 取得後に再描画 */
+    } else { HOLIDAYS=HOLIDAY_FALLBACK; }
+  }catch(e){ HOLIDAYS=HOLIDAY_FALLBACK; }
+}
+
+function isHoliday(d){ return !!HOLIDAYS[isoDate(d)]; }
+function holidayName(d){ return HOLIDAYS[isoDate(d)]||''; }
+
+/* ===== 六曜（旧暦朔日テーブルによる正確計算）===== */
+/* 大安0 赤口1 先勝2 友引3 先負4 仏滅5  ← (旧暦月+旧暦日)%6 のインデックス */
+const ROKUYO=['大安','赤口','先勝','友引','先負','仏滅'];
+/* 国立天文台基準の朔日データ [ISO日付文字列, 旧暦月番号] */
+const SAKUJITSU=[
+  ['2024-12-31',11],
+  ['2025-01-29',12],['2025-02-28',1],['2025-03-29',2],['2025-04-28',3],
+  ['2025-05-27',4], ['2025-06-25',5],['2025-07-25',6],['2025-08-23',7],
+  ['2025-09-22',8], ['2025-10-21',9],['2025-11-20',10],['2025-12-20',11],
+  ['2026-01-18',12],['2026-02-17',1],['2026-03-18',2],['2026-04-17',3],
+  ['2026-05-17',4], ['2026-06-15',5],['2026-07-15',6],['2026-08-13',7],
+  ['2026-09-11',8], ['2026-10-10',9],['2026-11-09',10],['2026-12-08',11],
+  ['2027-01-07',12],
+];
+/* 日付→旧暦(月,日)を返す */
+function _kyureki(d){
+  const ds=isoDate(d);
+  let prevSaku=null,prevMonth=0;
+  for(const [s,m] of SAKUJITSU){
+    if(s<=ds){prevSaku=s;prevMonth=m;}else break;
+  }
+  if(!prevSaku)return[1,1];
+  const diff=Math.round((d-new Date(prevSaku))/86400000)+1;
+  return[prevMonth,diff];
+}
+function getRokuyo(d){
+  const[m,day]=_kyureki(d);
+  return ROKUYO[(m+day)%6];
+}
+
+/* ===== ユーティリティ ===== */
+function zp(n){return String(n).padStart(2,'0')}
+function fmtDate(d){if(!d)return'';const dt=toDate(d);if(!dt)return'';return`${dt.getFullYear()}/${zp(dt.getMonth()+1)}/${zp(dt.getDate())}`}
+function fmtShort(d){if(!d)return'';const dt=toDate(d);if(!dt)return'';return`${dt.getMonth()+1}/${dt.getDate()}`}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r}
+function isoDate(d){return`${d.getFullYear()}-${zp(d.getMonth()+1)}-${zp(d.getDate())}`}
+function toDate(s){
+  if(!s)return null;if(s instanceof Date)return s;
+  const p=String(s).split('-');if(p.length!==3)return null;
+  return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+/* PC着日フィールド追加 */
+function addPcdateField(){
+  const wrap=document.getElementById('f_pcdates_wrap');
+  const inp=document.createElement('input');
+  inp.type='date';inp.className='f_pcdate_item';
+  inp.style.cssText='margin-bottom:3px;width:100%;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit';
+  wrap.appendChild(inp);
+}
+
+/* 旧pcdate→pcdates互換変換（loadData後に実行） */
+function migratePcdate(){
+  state.properties.forEach(p=>{
+    if(!p.pcdates){
+      p.pcdates=p.pcdate?[p.pcdate]:[];
+    }
+  });
+}
+
+function calcFs(text,maxPx,base,mn){
+  const w=Array.from(text).reduce((a,c)=>a+(c.codePointAt(0)>0x7f?1.6:1),0);
+  if(!w||w*base*0.68<=maxPx)return base;
+  return Math.max(mn,Math.floor(maxPx/w/0.68));
+}
+/* 坪数を「##.##坪」形式に整形 */
+function fmtTsubo(v){
+  if(!v)return'';
+  const s=String(v).replace(/[坪\s]/g,'').replace(/[^\d.]/g,'');
+  if(!s)return v;
+  const n=parseFloat(s);
+  if(isNaN(n))return v;
+  return n.toFixed(2)+'坪';
+}
+
+/* ===== State ===== */
+const STORAGE_KEY='pc_schedule_v2';
+let state={
+  weeks:3,startDate:null,properties:[],
+  makers:[
+    {name:'関西不動産販売(株)',staff:['高橋','中条','荒木','石田','甲斐','岸田','大澤'],sales:'専務',pc:'安松'},
+    {name:'キノエネ工務店(株)',staff:['牧野','出口','森岡','鈴木'],sales:'高尾',pc:'泉'},
+    {name:'(株)ヤマイチ住建',staff:['有田','市川','山田'],sales:'高尾',pc:'泉'},
+    {name:'(株)ビ・ハウス',staff:['下野','大村'],sales:'専務',pc:'安松'},
+    {name:'(株)さつま',staff:['社長'],sales:'篠原',pc:'泉'},
+    {name:'(株)アール・ティー・シーマネージメント',staff:['下谷'],sales:'川口',pc:'泉'},
+    {name:"(株)M's house plan",staff:['社長'],sales:'川口',pc:'安松'},
+    {name:'ピアホーム建設(株)',staff:['久保','四方'],sales:'社長',pc:'安松'},
+    {name:'松山工務店',staff:['幸司','川原田'],sales:'社長',pc:'安松'},
+    {name:'MKホーム(株)',staff:['社長'],sales:'社長',pc:'安松'},
+    {name:'松一工務店',staff:['社長'],sales:'社長',pc:'安松'},
+    {name:'(有)萩田工務店',staff:['社長','藤原'],sales:'高尾',pc:'泉'},
+    {name:'(株)尾﨑工務店',staff:['社長','階下'],sales:'高尾',pc:'泉'},
+    {name:'(株)サキヤクリエイト',staff:['奥井'],sales:'社長',pc:'泉'},
+    {name:'(株)ホクト住建',staff:['社長','栄','宮本'],sales:'泉',pc:'泉'},
+    {name:'(株)山西工務店',staff:['社長','山西強'],sales:'篠原',pc:'泉'},
+    {name:'(株)日向ハウス',staff:['社長'],sales:'篠原',pc:'泉'},
+    {name:'(株)中野工務店',staff:['社長'],sales:'高尾',pc:'泉'},
+    {name:'(株)角田工務店',staff:['社長'],sales:'川口',pc:'泉'},
+  ],
+  salesStaff:['社長','専務','高尾','川口','泉(大)','篠原','勝原','泉(悟)'],
+  pcStaff:['安松','泉'],
+  webhookUrl:'',dragData:null,cellTexts:{}
+};
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
+
+/* ===== 保存 ===== */
+function saveData(){
+  const s={...state};delete s.dragData;
+  s.startDate=s.startDate?isoDate(s.startDate):null;
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(s));showAutoSave();}
+  catch(e){alert('保存に失敗しました: '+e.message)}
+}
+function loadData(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return;
+    const saved=JSON.parse(raw);
+    if(saved.startDate)saved.startDate=toDate(saved.startDate);
+    Object.assign(state,saved);state.dragData=null;
+  }catch(e){console.warn('load failed',e)}
+}
+let _ast=null;
+function scheduleAutoSave(){clearTimeout(_ast);_ast=setTimeout(saveData,2000)}
+function showAutoSave(){
+  const el=document.getElementById('autoSaveInd');
+  el.classList.add('visible');setTimeout(()=>el.classList.remove('visible'),2500);
+}
+/* 共有用JSONを作成して返す */
+function _makeJSON(){
+  const s={...state};delete s.dragData;s.startDate=s.startDate?isoDate(s.startDate):null;
+  return JSON.stringify(s,null,2);
+}
+
+/* エクスポート: 固定ファイル名 + Discord自動投稿 */
+function exportJSON(){
+  const blob=new Blob([_makeJSON()],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='PC搬入予定表.json';a.click();URL.revokeObjectURL(a.href);
+  /* Webhook設定済みならDiscordに自動投稿 */
+  if(state.webhookUrl){
+    fetch(state.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({content:'PC予定表　更新しました。\n追加、変更、訂正ある場合はこちらのチャンネルにUPしてください。\nご確認お願い致します。'})})
+      .then(r=>{if(r.ok)showToast('エクスポート＆Discord投稿しました');else showToast('エクスポート完了（Discord投稿失敗）');})  
+      .catch(()=>showToast('エクスポート完了（Discord投稿失敗）'));
+  } else {
+    showToast('PC搬入予定表.json をダウンロードしました');
+  }
+}
+
+/* アーカイブ: タイムスタンプ付きファイル名 */
+function archiveJSON(){
+  const now=new Date();
+  const ts=`${now.getFullYear()}-${zp(now.getMonth()+1)}-${zp(now.getDate())}_${zp(now.getHours())}-${zp(now.getMinutes())}`;
+  const blob=new Blob([_makeJSON()],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`PC搬入予定表_${ts}.json`;a.click();URL.revokeObjectURL(a.href);
+  showToast(`アーカイブ保存: PC搬入予定表_${ts}.json`);
+}
+function importJSON(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const saved=JSON.parse(ev.target.result);
+      if(saved.startDate)saved.startDate=toDate(saved.startDate);
+      Object.assign(state,saved);state.dragData=null;
+      renderTable();saveData();alert('インポートしました');
+    }catch(err){alert('インポートに失敗しました: '+err.message)}
+  };
+  reader.readAsText(file);e.target.value='';
+}
+
+/* ===== カレンダー制御 ===== */
+function initStart(){
+  const d=new Date(TODAY);d.setDate(d.getDate()-d.getDay());
+  state.startDate=d;
+}
+function setWeeks(n){
+  state.weeks=n;
+  document.querySelectorAll('.week-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('wbtn'+n);if(btn)btn.classList.add('active');
+  renderTable();
+}
+function prevPeriod(){state.startDate=addDays(state.startDate,-(state.weeks*7));renderTable()}
+function nextPeriod(){state.startDate=addDays(state.startDate,state.weeks*7);renderTable()}
+function goToday(){initStart();renderTable()}
+function getDates(){
+  const dates=[];
+  for(let i=0;i<state.weeks*7;i++)dates.push(addDays(state.startDate,i));
+  return dates;
+}
+
+/* ===== テーブル描画 ===== */
+function renderTable(){
+  const dates=getDates();
+  const lbl=document.getElementById('periodLabel');
+  if(lbl)lbl.textContent=`${fmtDate(dates[0])} 〜 ${fmtDate(dates[dates.length-1])}`;
+  const tbl=document.getElementById('scheduleTable');
+  let html='';
+
+  /* colgroup */
+  html+='<colgroup><col style="width:240px;min-width:240px"><col style="width:28px;min-width:28px">';
+  for(const d of dates) html+=d.getDay()===0?'<col style="width:22px;min-width:22px;max-width:22px">':'<col style="min-width:28px;max-width:34px">';
+  html+='</colgroup>';
+
+  /* ===== ヘッダー ===== */
+  html+='<thead><tr>';
+  html+=`<th class="col-info-th" colspan="2" rowspan="2" style="text-align:left;color:#222;font-size:11px;padding:4px 8px;border-right:2px solid #888!important;border-bottom:2.5px solid #333!important">物件概要 / 工程情報</th>`;
+  for(const d of dates){
+    const dow=d.getDay();
+    const isSun=dow===0,isSat=dow===6;
+    const isToday=isoDate(d)===isoDate(TODAY);
+    const dowd=['日','月','火','水','木','金','土'][dow];
+    const isHol=!isSun&&isHoliday(d);
+    let bg;
+    if(isSun||isHol)bg='#f5c0cb';
+    else if(isToday)bg='#ffe070';
+    else if(isSat)bg='#c8dff0';
+    else bg='#d5e8f4';
+    const holTip=isHol?` title="${holidayName(d)}"`:'' ;
+    const colCls=isSun?' col-sun':isSat?' col-sat':'';
+    html+=`<th class="header-date${colCls}" style="background:${bg};color:#222;padding:2px 1px;text-align:center"${holTip}>${d.getMonth()+1}/${d.getDate()}(${dowd})</th>`;
+  }
+  html+='</tr><tr>';
+  for(const d of dates){
+    const rk=getRokuyo(d);
+    const isSun=d.getDay()===0,isToday=isoDate(d)===isoDate(TODAY);
+    const isHol2=!isSun&&isHoliday(d);
+    const bg=(isSun||isHol2)?'#fde8ec':isToday?'#fff9d6':'#f4f6f8';
+    const colCls2=isSun?' col-sun':'';
+    html+=`<td class="header-date${colCls2}" style="background:${bg};text-align:center;color:#555"><span class="rokuyo">${rk}</span></td>`;
+  }
+  html+='</tr></thead>';
+
+  /* ===== 固定レンタカー行 ===== */
+  const rentalRows=['🚛','AM1','AM2','PM1','PM2'];
+  html+='<tbody>';
+  for(let ri=0;ri<rentalRows.length;ri++){
+    html+='<tr>';
+    if(ri===0){
+      html+=`<td class="rental-info-cell" rowspan="5">レンタカー・その他配達予定</td>`;
+    }
+    html+=`<td class="rental-row-label">${rentalRows[ri]}</td>`;
+    for(const d of dates){
+      const isSun=d.getDay()===0,isToday=isoDate(d)===isoDate(TODAY);
+      const isHolR=!isSun&&isHoliday(d);
+      const bg=(isSun||isHolR)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isToday?'background:#fff9d6':'background:#f0f8fd';
+      html+=`<td class="rental-cell${isSun?' col-sun':''}" style="${bg}"></td>`;
+    }
+    html+='</tr>';
+  }
+  html+=`<tr class="rental-sep"><td style="background:#d5c8ef;position:sticky;left:0"></td><td></td>${dates.map(d=>d.getDay()===0?'<td style="background:#c8e4f2"></td>':'<td></td>').join('')}</tr>`;
+  html+='</tbody>';
+
+  /* ===== 物件行 ===== */
+  const rows=[
+    {key:'koudo',label:'工程'},{key:'am1',label:'AM1'},
+    {key:'am2',label:'AM2'},{key:'pm1',label:'PM1'},{key:'pm2',label:'PM2'},
+  ];
+
+  if(state.properties.length===0){
+    html+='<tbody><tr><td colspan="'+(dates.length+2)+'" style="padding:24px;text-align:center;color:#aaa">物件がありません。「＋ 新規物件」ボタンで追加してください。</td></tr></tbody>';
+  }
+
+  for(const prop of state.properties){
+    /* pcdates配列から最も早い日を取得 */
+    const _allPc=(prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean).sort();
+    const _earliestPc=_allPc[0]||'';
+    const pcDateStr=_earliestPc
+      ?('<span class="pc-arrival editable" onclick="openInlineEdit(event,'+prop.id+',\'pcdate\',\'PC着日\',\'date\')" title="クリックで編集">'+fmtShort(_earliestPc)+'着</span>')
+      :('<span class="editable no-print" style="color:#aaa;font-size:10px" onclick="openInlineEdit(event,'+prop.id+',\'pcdate\',\'PC着日\',\'date\')" title="PC着日を設定">着日未設定</span>');
+    const finalStr=prop.finalCheck
+      ?`<span><span class="date-label">最終確認:</span><span class="editable" onclick="openInlineEdit(event,${prop.id},'finalCheck','最終確認日','date')" title="クリックで編集">${fmtShort(prop.finalCheck)}</span></span>`
+      :`<span><span class="date-label">最終確認:</span><span class="editable no-print" style="color:#aaa" onclick="openInlineEdit(event,${prop.id},'finalCheck','最終確認日','date')" title="クリックで編集">--</span></span>`;
+    const dodaiStr=prop.dodai
+      ?`<span><span class="date-label">土台:</span><span class="editable" onclick="openInlineEdit(event,${prop.id},'dodai','土台敷き日','date')" title="クリックで編集">${fmtShort(prop.dodai)}</span></span>`
+      :`<span><span class="date-label">土台:</span><span class="editable no-print" style="color:#aaa" onclick="openInlineEdit(event,${prop.id},'dodai','土台敷き日','date')" title="クリックで編集">--</span></span>`;
+    const jotoStr=prop.joto
+      ?`<span><span class="date-label">上棟:</span><span class="editable" onclick="openInlineEdit(event,${prop.id},'joto','上棟日','date')" title="クリックで編集">${fmtShort(prop.joto)}</span></span>`
+      :`<span><span class="date-label">上棟:</span><span class="editable no-print" style="color:#aaa" onclick="openInlineEdit(event,${prop.id},'joto','上棟日','date')" title="クリックで編集">--</span></span>`;
+
+    const nameFull=prop.name||'';
+    const makerFull=(prop.makerName||'')+(prop.makerStaff?' ('+prop.makerStaff+')':'');
+    const nameFs=calcFs(nameFull,234,16,10);
+    const makerFs=makerFull?calcFs(makerFull,234,13,9):13;
+
+    /* 営業・PC担当の選択肢 */
+    const salesOpts=state.salesStaff.map(s=>`<option value="${esc(s)}"${prop.sales===s?' selected':''}>${esc(s)}</option>`).join('');
+    const pcOpts=state.pcStaff.map(s=>`<option value="${esc(s)}"${prop.pc===s?' selected':''}>${esc(s)}</option>`).join('');
+
+    /* 工務店担当の選択肢（工務店マスタから） */
+    const mk=state.makers.find(m=>m.name===prop.makerName);
+    const staffOpts=(mk?mk.staff:[]).map(s=>`<option value="${esc(s)}"${prop.makerStaff===s?' selected':''}>${esc(s)}</option>`).join('');
+
+    const infoCell=`<td class="prop-info-cell" rowspan="5" style="position:relative">
+      <button class="prop-delete-btn no-print" onclick="deleteProp(${prop.id})" title="削除">✕</button>
+      <div class="prop-name editable" style="font-size:${nameFs}px" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
+      ${(()=>{
+        const _mn=prop.makerName
+          ?('<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'makerName\',\'工務店名\',\'makerSelect\')"><b>'+esc(prop.makerName)+'</b></span>')
+          :('<span class="editable print-hide" style="color:#aaa" onclick="openInlineEdit(event,'+prop.id+',\'makerName\',\'工務店名\',\'makerSelect\')">工務店</span>');
+        const _ms=(prop.makerName&&staffOpts)
+          ?(' (<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'makerStaff\',\'工務店担当\',\'staffSelect\')">'+esc(prop.makerStaff||'未選択')+'</span>)')
+          :'';
+        const _ts='<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'tsubo\',\'坪数\',\'text\')">'+esc(fmtTsubo(prop.tsubo)||'--')+'</span>/<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'floors\',\'階数\',\'floorsSelect\')">'+esc(prop.floors||'--')+'</span>';
+        return '<div class="prop-maker-line" style="font-size:'+makerFs+'px"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_mn+_ms+'</span><span style="white-space:nowrap;margin-left:4px;font-size:9px;color:#666;flex-shrink:0">'+_ts+'</span></div>';
+      })()}
+      ${(()=>{const nid=prop.id;const ntxt=prop.note?`※<span class="editable" onclick="openInlineEdit(event,${nid},'note','備考','text')" title="備考を編集">${esc(prop.note)}</span>`:`<span class="editable print-hide" style="color:#bbb;font-size:10px" onclick="openInlineEdit(event,${nid},'note','備考','text')" title="備考を入力">※備考を入力</span>`;return`<div class="prop-note">${ntxt}</div>`})()}
+      <div class="prop-dates">${pcDateStr}${finalStr}${dodaiStr}${jotoStr}</div>
+      <div class="prop-staff">営業：<span class="editable" onclick="openInlineEdit(event,${prop.id},'sales','営業担当','salesSelect')" title="営業担当を変更">${esc(prop.sales||'--')}</span>　PC：<span class="editable" onclick="openInlineEdit(event,${prop.id},'pc','PC担当','pcSelect')" title="PC担当を変更">${esc(prop.pc||'--')}</span></div>
+    </td>`;
+
+    html+=`<tbody class="prop-group">`;
+    for(let ri=0;ri<rows.length;ri++){
+      const row=rows[ri];
+      html+='<tr>';
+      if(ri===0)html+=infoCell;
+      html+=`<td class="row-label">${row.label}</td>`;
+      for(const d of dates){
+        const ds=isoDate(d);
+        const isSun=d.getDay()===0,isToday=ds===isoDate(TODAY);
+        const isHolC=!isSun&&isHoliday(d);
+        const events=getEventsOnDate(prop,ds,row.key);
+        const bg=(isSun||isHolC)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isToday?'background:#fff9d6':'';
+        const cellKey=`${prop.id}_${ds}_${row.key}`;
+        const cellTxt=state.cellTexts[cellKey]||'';
+        html+=`<td class="schedule-cell${isSun?' col-sun':''}" style="${bg?bg+';':''}" data-propid="${prop.id}" data-date="${ds}" data-rowkey="${row.key}" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="onCellClick(event,'${cellKey}')">`;
+        for(const ev of events){
+          const evJson=JSON.stringify(ev).replace(/"/g,'&quot;');
+          html+=`<span class="cell-event ${ev.cls}" draggable="true" ondragstart="onDragStart(event,${evJson})" ondblclick="onBadgeDblClick(event,${evJson})" title="ダブルクリックで編集・削除">${ev.label}</span>`;
+        }
+        /* バッジと同じ内容のcellTextは表示しない（重複防止） */
+        const _badgeLabels=events.map(ev=>ev.label);
+        function _isBadgeDup(txt){
+          if(_badgeLabels.includes(txt)) return true;
+          /* PC着系（PC着1,PC着2等）はバッジがあれば重複扱い */
+          if((txt==='PC着'||/^PC着\d+$/.test(txt))&&_badgeLabels.some(l=>l==='PC着'||/^PC着\d+$/.test(l))) return true;
+          return false;
+        }
+        if(cellTxt&&!_isBadgeDup(cellTxt)){
+          const ctJson=JSON.stringify({type:'celltext',key:cellKey,label:cellTxt,propId:prop.id}).replace(/"/g,'&quot;');
+          html+=`<span class="cell-text" draggable="true" ondragstart="onCellTextDragStart(event,${ctJson})">${esc(cellTxt)}</span>`;
+        }
+        html+='</td>';
+      }
+      html+='</tr>';
+    }
+    const sepCols=dates.map(d=>d.getDay()===0?'<td style="background:#fde0e6"></td>':'<td></td>').join('');
+    html+=`<tr class="sep-row"><td style="background:#e4eaf0;position:sticky;left:0"></td><td></td>${sepCols}</tr></tbody>`;
+  }
+
+  tbl.innerHTML=html;
+  updateTime();
+}
+
+function getEventsOnDate(prop,ds,rowKey){
+  if(rowKey!=='koudo')return[];
+  const evs=[];
+  /* pcdates配列対応（旧pcdate互換含む） */
+  const _pcdates=prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[]);
+  const _pcTotal=_pcdates.filter(Boolean).length;
+  _pcdates.filter(Boolean).forEach((_pd,_pi)=>{
+    if(isoDate(toDate(_pd))===ds){
+      const _lbl=_pcTotal===1?'PC着':('PC着'+(_pi+1));
+      evs.push({type:'pc',label:_lbl,cls:'event-pc',propId:prop.id,date:ds,pcIdx:_pi});
+    }
+  });
+  if(prop.dodai&&isoDate(toDate(prop.dodai))===ds) evs.push({type:'dodai',label:'土台敷き',cls:'event-dodai',propId:prop.id,date:ds});
+  if(prop.joto&&isoDate(toDate(prop.joto))===ds) evs.push({type:'joto',label:'上棟',cls:'event-joto',propId:prop.id,date:ds});
+  return evs;
+}
+
+/* ===== インライン編集 ===== */
+let _editCtx={propId:null,field:null};
+
+function openInlineEdit(e,propId,field,label,type){
+  e.stopPropagation();
+  const prop=state.properties.find(p=>p.id===propId);if(!prop)return;
+  _editCtx={propId,field};
+
+  const popup=document.getElementById('editPopup');
+  document.getElementById('editLabel').textContent=label;
+  document.getElementById('editInput').style.display='none';
+  document.getElementById('editDate').style.display='none';
+  document.getElementById('editSelect').style.display='none';
+
+  if(type==='text'){
+    const inp=document.getElementById('editInput');
+    inp.value=prop[field]||'';inp.style.display='block';
+    setTimeout(()=>inp.focus(),50);
+    inp.onkeydown=ev=>{if(ev.key==='Enter')closeInlineEdit(true)};
+  } else if(type==='date'){
+    const inp=document.getElementById('editDate');
+    inp.value=prop[field]||'';inp.style.display='block';
+    setTimeout(()=>inp.focus(),50);
+  } else if(type==='salesSelect'){
+    const sel=document.getElementById('editSelect');
+    sel.innerHTML='<option value="">--</option>'+state.salesStaff.map(s=>`<option value="${esc(s)}"${prop[field]===s?' selected':''}>${esc(s)}</option>`).join('');
+    sel.style.display='block';
+  } else if(type==='pcSelect'){
+    const sel=document.getElementById('editSelect');
+    sel.innerHTML='<option value="">--</option>'+state.pcStaff.map(s=>`<option value="${esc(s)}"${prop[field]===s?' selected':''}>${esc(s)}</option>`).join('');
+    sel.style.display='block';
+  } else if(type==='makerSelect'){
+    const sel=document.getElementById('editSelect');
+    sel.innerHTML='<option value="">--</option>'+state.makers.map(m=>`<option value="${esc(m.name)}"${prop[field]===m.name?' selected':''}>${esc(m.name)}</option>`).join('');
+    sel.style.display='block';
+  } else if(type==='staffSelect'){
+    const mk=state.makers.find(m=>m.name===prop.makerName);
+    const sel=document.getElementById('editSelect');
+    sel.innerHTML='<option value="">--</option>'+((mk&&mk.staff)||[]).map(s=>`<option value="${esc(s)}"${prop[field]===s?' selected':''}>${esc(s)}</option>`).join('');
+    sel.style.display='block';
+  } else if(type==='floorsSelect'){
+    const sel=document.getElementById('editSelect');
+    const opts=['2階建て','3階建て','平屋','平屋/2階建て'];
+    sel.innerHTML=opts.map(o=>`<option value="${o}"${prop[field]===o?' selected':''}>${o}</option>`).join('');
+    sel.style.display='block';
+  }
+
+  /* ポップアップの位置をクリック位置の近くに */
+  const rect=e.target.getBoundingClientRect();
+  const winW=window.innerWidth,winH=window.innerHeight;
+  popup.style.display='block';
+  let left=rect.left,top=rect.bottom+4;
+  if(left+280>winW)left=winW-290;
+  if(top+130>winH)top=rect.top-140;
+  popup.style.left=Math.max(4,left)+'px';
+  popup.style.top=Math.max(4,top)+'px';
+
+  document.getElementById('editOverlay').style.display='block';
+}
+
+function closeInlineEdit(save){
+  if(save&&_editCtx.propId){
+    const prop=state.properties.find(p=>p.id===_editCtx.propId);
+    if(prop){
+      const inp=document.getElementById('editInput');
+      const dt=document.getElementById('editDate');
+      const sel=document.getElementById('editSelect');
+      let val='';
+      if(inp.style.display!=='none')val=inp.value.trim();
+      else if(dt.style.display!=='none')val=dt.value;
+      else if(sel.style.display!=='none')val=sel.value;
+      const oldVal=prop[_editCtx.field];
+      prop[_editCtx.field]=val;
+      /* 日付フィールドが変わった場合、対応するcellTextバッジも移動 */
+      const dateFields={pcdate:'PC着',dodai:'土台敷き',joto:'上棟'};
+      if(dateFields[_editCtx.field]){
+        const label=dateFields[_editCtx.field];
+        /* 古い日付のcellTextを削除 */
+        if(oldVal){
+          const oldKey=`${prop.id}_${oldVal}_koudo`;
+          if(state.cellTexts[oldKey]===label) delete state.cellTexts[oldKey];
+        }
+        /* 新しい日付にcellTextを設定 */
+        if(val){
+          const newKey=`${prop.id}_${val}_koudo`;
+          state.cellTexts[newKey]=label;
+        }
+      }
+      scheduleAutoSave();
+    }
+  }
+  document.getElementById('editPopup').style.display='none';
+  document.getElementById('editOverlay').style.display='none';
+  _editCtx={propId:null,field:null};
+  renderTable();
+}
+
+/* ===== D&D ===== */
+function onDragStart(e,ev){
+  state.dragData=ev;setTimeout(()=>e.target.classList.add('dragging'),0);
+  e.dataTransfer.effectAllowed='move';
+}
+function onDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over')}
+function onDragLeave(e){e.currentTarget.classList.remove('drag-over')}
+function onDrop(e){
+  e.preventDefault();e.currentTarget.classList.remove('drag-over');
+  const td=e.currentTarget;
+  const propId=parseInt(td.dataset.propid);
+  const newDate=td.dataset.date;
+  const ev=state.dragData;
+  if(!ev||!propId||!newDate)return;
+  const prop=state.properties.find(p=>p.id===propId);if(!prop)return;
+  /* cellText（AM1等）のD&D移動 */
+  if(ev.isCellText){
+    const toKey=`${propId}_${newDate}_${td.dataset.rowkey}`;
+    if(ev.key!==toKey){
+      delete state.cellTexts[ev.key];
+      state.cellTexts[toKey]=ev.label;
+    }
+    state.dragData=null;
+    document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+    renderTable();scheduleAutoSave();
+    return;
+  }
+  /* PC着はpcdates配列の該当インデックスを更新 */
+  if(ev.isCellText){
+    /* cellTextのD&Dは既存処理 */
+  }
+  const _dtMap={dodai:'dodai',joto:'joto'};
+  /* PC着は特別処理 */
+  if(ev.type==='pc'&&!ev.isCellText){
+    const _pcs=(prop.pcdates&&prop.pcdates.length?[...prop.pcdates]:(prop.pcdate?[prop.pcdate]:[]));
+    const _idx=typeof ev.pcIdx==='number'?ev.pcIdx:0;
+    const _old=_pcs[_idx];
+    _pcs[_idx]=newDate;
+    prop.pcdates=_pcs;
+    prop.pcdate=_pcs.filter(Boolean).sort()[0]||'';
+    /* cellText更新 */
+    const _pcTotal=_pcs.filter(Boolean).length;
+    if(_old){const _ok=prop.id+'_'+_old+'_koudo';const _olbl=_pcTotal===1?'PC着':('PC着'+(_idx+1));if(state.cellTexts[_ok]&&state.cellTexts[_ok].startsWith('PC着'))delete state.cellTexts[_ok];}
+    const _nk=prop.id+'_'+newDate+'_koudo';
+    state.cellTexts[_nk]=_pcTotal===1?'PC着':('PC着'+(_idx+1));
+    state.dragData=null;
+    document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+    renderTable();scheduleAutoSave();
+    return;
+  }
+  const _lblMap={pc:'PC着',dodai:'土台敷き',joto:'上棟'};
+  const _fld=_dtMap[ev.type];
+  if(_fld){
+    const _oldDate=prop[_fld];
+    /* 古いcellTextを削除 */
+    if(_oldDate){
+      const _oldKey=`${prop.id}_${_oldDate}_koudo`;
+      if(state.cellTexts[_oldKey]===_lblMap[ev.type]) delete state.cellTexts[_oldKey];
+    }
+    prop[_fld]=newDate;
+    /* 新しいcellTextをセット */
+    const _newKey=`${prop.id}_${newDate}_koudo`;
+    state.cellTexts[_newKey]=_lblMap[ev.type];
+  }
+  state.dragData=null;
+  document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+  renderTable();scheduleAutoSave();
+}
+document.addEventListener('dragend',()=>{
+  document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
+});
+
+/* ===== セル直接入力 ===== */
+/* ===== バッジ直接編集（ダブルクリック）===== */
+function onBadgeDblClick(e,ev){
+  e.stopPropagation();
+  e.preventDefault();
+  const prop=state.properties.find(p=>p.id===ev.propId);
+  if(!prop) return;
+
+  const fldMap={pc:'pcdate',dodai:'dodai',joto:'joto'};
+  const lblMap={pc:'PC着',dodai:'土台敷き',joto:'上棟'};
+  const fld=fldMap[ev.type];
+  if(!fld) return;
+
+  /* ポップアップを構築 */
+  const popup=document.getElementById('editPopup');
+  document.getElementById('editLabel').textContent=lblMap[ev.type]+'（日付変更・削除）';
+  document.getElementById('editInput').style.display='none';
+  document.getElementById('editSelect').style.display='none';
+  const dt=document.getElementById('editDate');
+  dt.value=prop[fld]||'';
+  dt.style.display='block';
+
+  /* 削除ボタンを一時追加 */
+  const footer=popup.querySelector('.popup-footer');
+  let delBtn=footer.querySelector('.badge-del-btn');
+  if(!delBtn){
+    delBtn=document.createElement('button');
+    delBtn.className='btn btn-red badge-del-btn';
+    delBtn.style.cssText='padding:3px 10px;margin-right:auto';
+    delBtn.textContent='削除';
+    footer.insertBefore(delBtn,footer.firstChild);
+  }
+  delBtn.onclick=function(){
+    if(ev.type==='pc'){
+      const _pcs=(prop.pcdates&&prop.pcdates.length?[...prop.pcdates]:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean);
+      const _idx=typeof ev.pcIdx==='number'?ev.pcIdx:0;
+      _pcs.splice(_idx,1);
+      prop.pcdates=_pcs;
+      prop.pcdate=_pcs.sort()[0]||'';
+      Object.keys(state.cellTexts).forEach(k=>{if(k.startsWith(prop.id+'_')&&k.endsWith('_koudo')&&state.cellTexts[k].startsWith('PC着'))delete state.cellTexts[k];});
+      _pcs.forEach((_pd,_pi)=>{state.cellTexts[prop.id+'_'+_pd+'_koudo']=_pcs.length===1?'PC着':('PC着'+(_pi+1));});
+    } else {
+      prop[fld]='';
+      Object.keys(state.cellTexts).forEach(k=>{
+        if(k.startsWith(prop.id+'_')&&k.endsWith('_koudo')&&state.cellTexts[k]===lblMap[ev.type]){
+          delete state.cellTexts[k];
+        }
+      });
+    }
+    document.getElementById('editPopup').style.display='none';
+    document.getElementById('editOverlay').style.display='none';
+    renderTable();scheduleAutoSave();
+  };
+
+  /* 保存時の処理を上書き */
+  _editCtx={propId:ev.propId,field:fld};
+
+  const rect=e.target.getBoundingClientRect();
+  const winW=window.innerWidth,winH=window.innerHeight;
+  popup.style.display='block';
+  let left=rect.left,top=rect.bottom+4;
+  if(left+280>winW)left=winW-290;
+  if(top+130>winH)top=rect.top-140;
+  popup.style.left=Math.max(4,left)+'px';
+  popup.style.top=Math.max(4,top)+'px';
+  document.getElementById('editOverlay').style.display='block';
+}
+
+/* ===== cellText D&D ===== */
+function onCellTextDragStart(e,ev){
+  state.dragData={...ev,isCellText:true};
+  setTimeout(()=>e.target.classList.add('dragging'),0);
+  e.dataTransfer.effectAllowed='move';
+}
+
+function onCellClick(e,cellKey){
+  /* バッジのspan・削除ボタン・既存inputをクリックした場合は何もしない */
+  if(e.target.closest('.cell-event')||e.target.closest('.cell-input-wrap')||e.target.closest('.prop-delete-btn')) return;
+  e.stopPropagation();
+
+  const td=e.currentTarget;
+  /* 既に入力中なら無視 */
+  if(td.querySelector('.cell-input-wrap')) return;
+
+  const currentVal=state.cellTexts[cellKey]||'';
+
+  /* インライン入力ラッパーを生成 */
+  const wrap=document.createElement('div');
+  wrap.className='cell-input-wrap no-print';
+  const inp=document.createElement('input');
+  inp.type='text';
+  inp.value=currentVal;
+  inp.maxLength=20;
+  inp.placeholder='入力…';
+  wrap.appendChild(inp);
+  td.style.position='relative';
+  td.appendChild(wrap);
+  inp.focus();
+  inp.select();
+
+  function commit(){
+    const val=inp.value.trim();
+    /* 完全一致キーワードはcellTextsに保存しない（バッジで表示） */
+    const _isKeyword=(v)=>v==='土台敷き'||v==='上棟'||v==='PC着'||/^PC着\d+$/.test(v);
+    if(val===''||_isKeyword(val)) delete state.cellTexts[cellKey];
+    else state.cellTexts[cellKey]=val;
+    wrap.remove();
+    /* セルのキーから propId と date を取り出して日付フィールドにも反映 */
+    const parts=cellKey.split('_');
+    if(parts.length>=3){
+      const cPropId=parseInt(parts[0]);
+      const cDate=parts[1]; /* YYYY-MM-DD */
+      const cProp=state.properties.find(p=>p.id===cPropId);
+      if(cProp){
+        /* 完全一致のときだけ物件概要の日付に反映 */
+        if(val==='土台敷き'){
+          cProp.dodai=cDate;
+        } else if(val==='上棟'){
+          cProp.joto=cDate;
+        } else if(val==='PC着'||/^PC着\d+$/.test(val)){
+          /* PC着 or PC着1,PC着2... → pcdates配列に追加/更新 */
+          const _pcs=(cProp.pcdates&&cProp.pcdates.length?[...cProp.pcdates]:(cProp.pcdate?[cProp.pcdate]:[])).filter(Boolean);
+          if(!_pcs.includes(cDate)) _pcs.push(cDate);
+          cProp.pcdates=_pcs.sort();
+          cProp.pcdate=cProp.pcdates[0]||'';
+        }
+        /* 削除の場合（空）→ 対応フィールドをクリア */
+        if(val===''){
+          /* どのフィールドに対応するか既存バッジで判断 */
+          if(cProp.pcdate===cDate) cProp.pcdate='';
+          if(cProp.dodai===cDate) cProp.dodai='';
+          if(cProp.joto===cDate) cProp.joto='';
+        }
+      }
+    }
+    scheduleAutoSave();
+    renderTable();
+  }
+  function cancel(){
+    wrap.remove();
+  }
+  inp.addEventListener('keydown',function(ev){
+    if(ev.key==='Enter'){ev.preventDefault();commit();}
+    else if(ev.key==='Escape'){ev.preventDefault();cancel();}
+  });
+  inp.addEventListener('blur',function(){
+    /* blurはcommit（空なら削除） */
+    commit();
+  });
+}
+
+/* ===== ソート ===== */
+function sortByPcDate(){
+  state.properties.sort((a,b)=>{
+    const ea=!a.pcdate,eb=!b.pcdate;
+    if(ea&&eb)return 0;if(ea)return -1;if(eb)return 1;
+    return a.pcdate.localeCompare(b.pcdate);
+  });
+  renderTable();scheduleAutoSave();
+}
+
+/* ===== 物件削除 ===== */
+function deleteProp(id){
+  if(!confirm('この物件を削除しますか？'))return;
+  state.properties=state.properties.filter(p=>p.id!==id);
+  renderTable();scheduleAutoSave();
+}
+
+/* ===== 新規物件 ===== */
+function openAddModal(){
+  ['f_name','f_tsubo','f_finalCheck','f_dodai','f_joto','f_note','f_makerFree']
+    .forEach(id=>document.getElementById(id).value='');
+  /* PC着日フィールドをリセット（1つだけに戻す） */
+  const wrap=document.getElementById('f_pcdates_wrap');
+  wrap.innerHTML='<input type="date" class="f_pcdate_item" style="margin-bottom:3px;width:100%;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit">';
+  document.getElementById('f_floors').value='';
+  populateMakerSelect();populateSalesSelect();populatePcSelect();
+  document.getElementById('addModal').style.display='flex';
+}
+function populateMakerSelect(){
+  const sel=document.getElementById('f_maker');
+  sel.innerHTML='<option value="">-- 選択 --</option>';
+  state.makers.forEach(mk=>sel.innerHTML+=`<option value="${esc(mk.name)}">${esc(mk.name)}</option>`);
+}
+function onMakerChange(){
+  const name=document.getElementById('f_maker').value;
+  const sel=document.getElementById('f_makerStaff');
+  sel.innerHTML='<option value="">-- 選択 --</option>';
+  const mk=state.makers.find(m=>m.name===name);
+  if(mk){
+    mk.staff.forEach(s=>sel.innerHTML+=`<option value="${esc(s)}">${esc(s)}</option>`);
+    if(mk.sales){const o=document.getElementById('f_sales').querySelector(`option[value="${mk.sales}"]`);if(o)document.getElementById('f_sales').value=mk.sales}
+    if(mk.pc){const o=document.getElementById('f_pc').querySelector(`option[value="${mk.pc}"]`);if(o)document.getElementById('f_pc').value=mk.pc}
+  }
+}
+function populateSalesSelect(){
+  const sel=document.getElementById('f_sales');
+  sel.innerHTML='<option value="">-- 選択 --</option>';
+  state.salesStaff.forEach(s=>sel.innerHTML+=`<option value="${esc(s)}">${esc(s)}</option>`);
+}
+function populatePcSelect(){
+  const sel=document.getElementById('f_pc');
+  sel.innerHTML='<option value="">-- 選択 --</option>';
+  state.pcStaff.forEach(s=>sel.innerHTML+=`<option value="${esc(s)}">${esc(s)}</option>`);
+}
+function saveProperty(){
+  const name=document.getElementById('f_name').value.trim();
+  if(!name){alert('物件名を入力してください');return}
+  const _makerSel=document.getElementById('f_maker').value;
+  const _makerFree=document.getElementById('f_makerFree').value.trim();
+  const _makerName=_makerSel||_makerFree;
+  state.properties.push({
+    id:Date.now(),name,
+    makerName:_makerName,
+    makerStaff:document.getElementById('f_makerStaff').value,
+    tsubo:document.getElementById('f_tsubo').value,
+    floors:document.getElementById('f_floors').value,
+    pcdates:Array.from(document.querySelectorAll('.f_pcdate_item')).map(i=>i.value).filter(Boolean),
+    finalCheck:document.getElementById('f_finalCheck').value,
+    dodai:document.getElementById('f_dodai').value,
+    joto:document.getElementById('f_joto').value,
+    sales:document.getElementById('f_sales').value,
+    pc:document.getElementById('f_pc').value,
+    note:document.getElementById('f_note').value,
+  });
+  /* 新規登録時：日付が入力されていればcellTextにも反映 */
+  const _np=state.properties[state.properties.length-1];
+  /* PC着複数対応 */
+  const _pcsInit=(_np.pcdates&&_np.pcdates.length?_np.pcdates:[]).filter(Boolean);
+  const _pcTotInit=_pcsInit.length;
+  _pcsInit.forEach((_pd,_pi)=>{
+    const _lbl=_pcTotInit===1?'PC着':('PC着'+(_pi+1));
+    state.cellTexts[`${_np.id}_${_pd}_koudo`]=_lbl;
+  });
+  if(_np.dodai) state.cellTexts[`${_np.id}_${_np.dodai}_koudo`]='土台敷き';
+  if(_np.joto)  state.cellTexts[`${_np.id}_${_np.joto}_koudo`]='上棟';
+  closeModal('addModal');renderTable();scheduleAutoSave();
+}
+
+/* ===== 設定 ===== */
+function openSettings(){
+  renderMakerList();renderStaffLists();
+  const wh=document.getElementById('webhookUrl');if(wh)wh.value=state.webhookUrl||'';
+  document.getElementById('settingsModal').style.display='flex';
+}
+function renderMakerList(){
+  const el=document.getElementById('makerList');
+  if(!state.makers.length){el.innerHTML='<div style="padding:8px;color:#aaa;font-size:11px">工務店が登録されていません</div>';return}
+  el.innerHTML=state.makers.map((mk,i)=>`
+    <div class="maker-item"><div class="maker-view">
+      <div class="maker-name-disp">${esc(mk.name)}</div>
+      <div class="maker-details">
+        <div>担当：${(mk.staff||[]).map(s=>`<span class="tag">${esc(s)}</span>`).join('')}</div>
+        <div>営業：<span class="tag">${esc(mk.sales||'-')}</span>　PC：<span class="tag">${esc(mk.pc||'-')}</span></div>
+      </div>
+      <button class="btn btn-edit" style="padding:2px 8px;font-size:10px" onclick="openMakerEdit(${i})">編集</button>
+      <button class="btn btn-red" style="padding:2px 8px;font-size:10px" onclick="deleteMaker(${i})">削除</button>
+    </div></div>`).join('');
+}
+function renderStaffLists(){
+  document.getElementById('salesList').innerHTML=
+    state.salesStaff.map((s,i)=>`<span class="staff-tag">${esc(s)}<button onclick="removeStaff('sales',${i})">×</button></span>`).join('');
+  document.getElementById('pcList').innerHTML=
+    state.pcStaff.map((s,i)=>`<span class="staff-tag">${esc(s)}<button onclick="removeStaff('pc',${i})">×</button></span>`).join('');
+}
+function addMaker(){
+  const name=document.getElementById('nm_makerName').value.trim();
+  if(!name){alert('工務店名を入力してください');return}
+  const staff=document.getElementById('nm_staff').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const sales=document.getElementById('nm_sales').value.trim();
+  const pc=document.getElementById('nm_pc').value.trim();
+  state.makers.push({name,staff,sales,pc});
+  ['nm_makerName','nm_staff','nm_sales','nm_pc'].forEach(id=>document.getElementById(id).value='');
+  renderMakerList();scheduleAutoSave();
+}
+function deleteMaker(i){
+  if(confirm('この工務店を削除しますか？')){state.makers.splice(i,1);renderMakerList();scheduleAutoSave()}
+}
+function addStaff(type){
+  const inp=document.getElementById(type==='sales'?'newSales':'newPc');
+  const v=inp.value.trim();if(!v)return;
+  if(type==='sales')state.salesStaff.push(v);else state.pcStaff.push(v);
+  inp.value='';renderStaffLists();scheduleAutoSave();
+}
+function removeStaff(type,i){
+  if(type==='sales')state.salesStaff.splice(i,1);else state.pcStaff.splice(i,1);
+  renderStaffLists();scheduleAutoSave();
+}
+let _ems=[];
+function openMakerEdit(i){
+  const mk=state.makers[i];
+  document.getElementById('em_idx').value=i;
+  document.getElementById('em_name').value=mk.name;
+  document.getElementById('em_sales').value=mk.sales||'';
+  document.getElementById('em_pc').value=mk.pc||'';
+  _ems=[...(mk.staff||[])];renderEditStaffList();
+  document.getElementById('makerEditModal').style.display='flex';
+}
+function renderEditStaffList(){
+  document.getElementById('em_staffList').innerHTML=
+    _ems.map((s,i)=>`<span class="staff-tag">${esc(s)}<button onclick="removeEditStaff(${i})">×</button></span>`).join('');
+}
+function removeEditStaff(i){_ems.splice(i,1);renderEditStaffList()}
+function addMakerStaff(){
+  const inp=document.getElementById('em_newStaff');
+  const v=inp.value.trim();if(!v)return;
+  _ems.push(v);inp.value='';renderEditStaffList();
+}
+function saveMakerEdit(){
+  const i=parseInt(document.getElementById('em_idx').value);
+  const name=document.getElementById('em_name').value.trim();
+  state.makers[i]={name:name||state.makers[i].name,staff:[..._ems],
+    sales:document.getElementById('em_sales').value.trim(),pc:document.getElementById('em_pc').value.trim()};
+  closeModal('makerEditModal');renderMakerList();scheduleAutoSave();
+}
+
+/* ===== Discord ===== */
+function openDiscord(){
+  const wh=document.getElementById('webhookUrl');if(wh)wh.value=state.webhookUrl||'';
+  document.getElementById('discordModal').style.display='flex';
+}
+function postDiscord(){
+  const url=document.getElementById('webhookUrl').value.trim();
+  if(!url){alert('Webhook URLを入力してください');return}
+  if(!url.startsWith('https://discord.com/api/webhooks/')){alert('正しいDiscord Webhook URLを入力してください');return}
+  state.webhookUrl=url;
+  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({content:'PC予定表　更新しました。\n追加、変更、訂正ある場合はこちらのチャンネルにUPしてください。\nご確認お願い致します。'})})
+    .then(r=>{if(r.ok){alert('Discordに投稿しました！');closeModal('discordModal')}
+              else alert('投稿失敗。Webhook URLを確認してください')})
+    .catch(()=>alert('投稿失敗。Webhook URLを確認してください'));
+}
+
+/* ===== 印刷 ===== */
+function printSchedule(){
+  const dates=getDates();
+  document.getElementById('printDate').textContent=
+    `出力日時：${new Date().toLocaleString('ja-JP')}　期間：${fmtDate(dates[0])} 〜 ${fmtDate(dates[dates.length-1])}`;
+  window.print();
+}
+
+/* ===== 共通 ===== */
+/* トースト通知 */
+function showToast(msg){
+  const el=document.getElementById('toastEl');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),3000);
+}
+function closeModal(id){document.getElementById(id).style.display='none'}
+/* モーダル外クリックで閉じない（誤操作防止） */
+function updateTime(){
+  const now=new Date();
+  const el=document.getElementById('headerTime');
+  if(el)el.textContent=`${now.getFullYear()}/${zp(now.getMonth()+1)}/${zp(now.getDate())} ${zp(now.getHours())}:${zp(now.getMinutes())}`;
+}
+
+/* ===== 初期化 ===== */
+loadData();
+migratePcdate();
+if(!state.startDate)initStart();
+renderTable();
+setWeeks(state.weeks||3);
+setInterval(updateTime,30000);
+/* 祝日データをバックグラウンド取得（取得完了後に自動再描画） */
+fetchHolidays();
+</script>
+</body>
+</html>
