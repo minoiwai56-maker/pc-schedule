@@ -261,11 +261,13 @@ body.view-mode .view-badge{display:inline-flex!important}
           <input type="date" class="f_pcdate_item" style="margin-bottom:3px;width:100%;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit">
         </div>
       </div>
-      <div class="form-group"><label>最終確認日</label><input type="date" id="f_finalCheck"></div>
       <div class="form-group"><label>土台敷き日</label><input type="date" id="f_dodai"></div>
       <div class="form-group"><label>上棟日</label><input type="date" id="f_joto"></div>
-      <div class="form-group"><label>営業担当</label><select id="f_sales"><option value="">-- 選択 --</option></select></div>
-      <div class="form-group"><label>PC担当</label><select id="f_pc"><option value="">-- 選択 --</option></select></div>
+      <div class="form-group"><label>最終確認日</label><input type="date" id="f_finalCheck"></div>
+      <div class="form-group full" style="display:flex;gap:14px">
+        <div style="flex:1;display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;font-weight:600;color:#555">営業担当</label><select id="f_sales"><option value="">-- 選択 --</option></select></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;font-weight:600;color:#555">PC担当</label><select id="f_pc"><option value="">-- 選択 --</option></select></div>
+      </div>
       <div class="form-group full"><label>備考</label><input type="text" id="f_note" placeholder="備考"></div>
     </div>
     <div class="modal-footer">
@@ -1109,10 +1111,31 @@ function onCellClick(e,cellKey){
 
 /* ===== ソート ===== */
 function sortByPcDate(){
+  /* PC着指定無し → PC着日早い順 → 土台敷き早い順 → 上棟日早い順 */
+  function earliestPc(p){
+    const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean).sort();
+    return pcs[0]||'';
+  }
   state.properties.sort((a,b)=>{
-    const ea=!a.pcdate,eb=!b.pcdate;
-    if(ea&&eb)return 0;if(ea)return -1;if(eb)return 1;
-    return a.pcdate.localeCompare(b.pcdate);
+    const pa=earliestPc(a),pb=earliestPc(b);
+    const ea=!pa,eb=!pb;
+    if(ea&&eb){
+      /* 両方PC着なし → 土台敷き順 → 上棟順 */
+      if(a.dodai&&b.dodai) return a.dodai.localeCompare(b.dodai);
+      if(a.dodai)return -1;if(b.dodai)return 1;
+      if(a.joto&&b.joto) return a.joto.localeCompare(b.joto);
+      if(a.joto)return -1;if(b.joto)return 1;
+      return 0;
+    }
+    if(ea)return -1;if(eb)return 1;
+    /* PC着日が同じなら土台敷き順 → 上棟順 */
+    const pc=pa.localeCompare(pb);
+    if(pc!==0)return pc;
+    if(a.dodai&&b.dodai){const d=a.dodai.localeCompare(b.dodai);if(d!==0)return d;}
+    else if(a.dodai)return -1;else if(b.dodai)return 1;
+    if(a.joto&&b.joto)return a.joto.localeCompare(b.joto);
+    if(a.joto)return -1;if(b.joto)return 1;
+    return 0;
   });
   renderTable();scheduleAutoSave();
 }
