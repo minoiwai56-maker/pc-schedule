@@ -1,6 +1,6 @@
 {
-  "weeks": 4,
-  "startDate": "2026-05-31",
+  "weeks": 2,
+  "startDate": "2026-05-17",
   "properties": [
     {
       "id": 1778652161731,
@@ -74,7 +74,7 @@
     },
     {
       "id": 1778652302716,
-      "name": "長尾北町3丁目",
+      "name": "長尾北町3丁目(朝間PC)",
       "makerName": "㈱日向ハウス",
       "makerStaff": "社長",
       "tsubo": "",
