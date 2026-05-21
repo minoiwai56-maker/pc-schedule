@@ -27,7 +27,7 @@ button.btn:hover{opacity:.85}
 .table-wrap{overflow-x:auto;padding:8px;min-height:200px}
 
 /* ===== SCHEDULE TABLE ===== */
-table.schedule{border-collapse:collapse;font-size:11px;width:100%;background:#fff;table-layout:auto;border:2px solid #555}
+table.schedule{border-collapse:collapse;font-size:11px;width:100%;background:#fff;table-layout:fixed;border:2px solid #555}
 table.schedule th,table.schedule td{border:1px solid #ccc;padding:1px 2px;white-space:nowrap;vertical-align:middle;overflow:hidden}
 table.schedule thead th{border-top:2px solid #555;border-bottom:1px solid #ccc}
 table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
@@ -52,7 +52,7 @@ th.col-sun{background:#f5c0cb!important}
 .header-date{text-align:center;font-size:10px;line-height:1.4;padding:2px 1px;color:#222;white-space:nowrap}
 .rokuyo{font-size:9px;color:#777;display:block}
 .sep-row td{height:0;background:transparent;border:none;border-top:2.5px solid #333;border-bottom:0;padding:0}
-.schedule-cell{text-align:center;padding:1px 2px;position:relative;color:#222}
+.schedule-cell{text-align:center;padding:1px 2px;position:relative;color:#222;overflow:hidden}
 .schedule-cell:hover:not(.col-sun){background:#eef5fb}
 
 /* 物件概要セル内 */
@@ -84,15 +84,16 @@ th.col-sun{background:#f5c0cb!important}
 .inline-edit-popup .popup-footer{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}
 
 /* イベントバッジ */
-.cell-event{border-radius:3px;font-size:10px;font-weight:700;color:#222;text-align:center;padding:1px 3px;cursor:grab;user-select:none;display:block;white-space:nowrap;margin:1px auto}
+.cell-event{border-radius:3px;font-size:9px;font-weight:700;color:#222;text-align:center;padding:0 1px;cursor:grab;user-select:none;display:block;white-space:nowrap;margin:1px auto;position:relative;z-index:5;overflow:visible}
 .cell-event:active{cursor:grabbing;opacity:.7}
 .event-pc{background:#fde8d0;border:1px solid #d4600a}.event-joto{background:#fdd9d5;border:1px solid #c0392b}.event-dodai{background:#eeddf5;border:1px solid #7d3c98}
 .cell-text{
-  display:block;font-size:10px;font-weight:600;color:#2e7d32;
-  background:#f1faf2;border-radius:2px;padding:0 2px;
+  display:block;font-size:9px;font-weight:600;color:#2e7d32;
+  background:#f1faf2;border-radius:2px;padding:0 1px;
   border:1px solid #c8e6c9;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;overflow:visible;
   cursor:pointer;margin:1px auto;text-align:center;
+  position:relative;z-index:5;
 }
 .cell-input-wrap{
   position:absolute;top:0;left:0;width:100%;height:100%;
@@ -154,6 +155,9 @@ th.col-sun{background:#f5c0cb!important}
   table.schedule th,table.schedule td{padding:0 1px!important}
   .rental-sep td{height:3px!important;background:#b8d8ec!important;border-top:2px solid #333!important;border-bottom:2px solid #333!important;padding:0!important}
   th.header-date{font-size:9px;padding:1px}.rokuyo{font-size:8px}
+  /* A3横印刷時の列幅最適化: table-layout:fixedに合わせて幅を明示 */
+  table.schedule col:nth-child(n+3){width:auto!important;min-width:0!important;max-width:none!important}
+  table.schedule{table-layout:auto!important}
   table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
   .cell-event{font-size:9px;padding:1px 2px;color:#222!important}
   th.col-sun,td.col-sun{width:14px!important;min-width:14px!important;max-width:14px!important}
@@ -477,6 +481,16 @@ function calcFs(text,maxPx,base,mn){
   if(!w||w*base*0.68<=maxPx)return base;
   return Math.max(mn,Math.floor(maxPx/w/0.68));
 }
+/* セル幅に収まるfont-sizeを計算（折り返しなし・縮小対応）*/
+function calcCellFs(text,maxPx){
+  /* 全角≒0.65em、半角≒0.5em として推定幅を計算 */
+  const w=Array.from(text).reduce((a,c)=>a+(c.codePointAt(0)>0x7f?0.65:0.5),0);
+  const base=9;
+  const needed=w*base;
+  if(needed<=maxPx) return base;
+  return Math.max(6,Math.floor(maxPx/w));
+}
+
 /* 坪数を「##.##坪」形式に整形 */
 function fmtTsubo(v){
   if(!v)return'';
@@ -617,7 +631,7 @@ function renderTable(){
 
   /* colgroup */
   html+='<colgroup><col style="width:240px;min-width:240px"><col style="width:28px;min-width:28px">';
-  for(const d of dates) html+=d.getDay()===0?'<col style="width:22px;min-width:22px;max-width:22px">':'<col style="min-width:28px;max-width:34px">';
+  for(const d of dates) html+=d.getDay()===0?'<col style="width:22px;min-width:22px;max-width:22px">':'<col style="width:40px;min-width:40px;max-width:40px">';
   html+='</colgroup>';
 
   /* ===== ヘッダー ===== */
@@ -744,7 +758,8 @@ function renderTable(){
         html+=`<td class="schedule-cell${isSun?' col-sun':''}" style="${bg?bg+';':''}" data-propid="${prop.id}" data-date="${ds}" data-rowkey="${row.key}" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="onCellClick(event,'${cellKey}')">`;
         for(const ev of events){
           const evJson=JSON.stringify(ev).replace(/"/g,'&quot;');
-          html+=`<span class="cell-event ${ev.cls}" draggable="true" ondragstart="onDragStart(event,${evJson})" ondblclick="onBadgeDblClick(event,${evJson})" title="ダブルクリックで編集・削除">${ev.label}</span>`;
+          const _bFs=calcCellFs(ev.label,38);
+          html+=`<span class="cell-event ${ev.cls}" draggable="true" ondragstart="onDragStart(event,${evJson})" ondblclick="onBadgeDblClick(event,${evJson})" title="ダブルクリックで編集・削除" style="font-size:${_bFs}px">${ev.label}</span>`;
         }
         /* バッジと同じ内容のcellTextは表示しない（重複防止） */
         const _badgeLabels=events.map(ev=>ev.label);
@@ -756,7 +771,8 @@ function renderTable(){
         }
         if(cellTxt&&!_isBadgeDup(cellTxt)){
           const ctJson=JSON.stringify({type:'celltext',key:cellKey,label:cellTxt,propId:prop.id}).replace(/"/g,'&quot;');
-          html+=`<span class="cell-text" draggable="true" ondragstart="onCellTextDragStart(event,${ctJson})">${esc(cellTxt)}</span>`;
+          const _ctFs=calcCellFs(cellTxt,38);
+          html+=`<span class="cell-text" draggable="true" ondragstart="onCellTextDragStart(event,${ctJson})" style="font-size:${_ctFs}px">${esc(cellTxt)}</span>`;
         }
         html+='</td>';
       }
