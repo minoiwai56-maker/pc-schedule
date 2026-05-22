@@ -29,6 +29,11 @@ button.btn:hover{opacity:.85}
 /* ===== SCHEDULE TABLE ===== */
 table.schedule{border-collapse:collapse;font-size:11px;width:100%;background:#fff;table-layout:fixed;border:2px solid #555}
 table.schedule th,table.schedule td{border:1px solid #ccc;padding:1px 2px;white-space:nowrap;vertical-align:middle;overflow:hidden}
+table.schedule thead th,table.schedule thead td{position:sticky;z-index:11}
+/* ヘッダー行1（日付）: toolbarの下に固定 */
+table.schedule thead tr:first-child th{top:41px}
+/* ヘッダー行2（六曜）: 行1の高さ分下に固定（約28px）*/
+table.schedule thead tr:last-child td{top:69px}
 table.schedule thead th{border-top:2px solid #555;border-bottom:1px solid #ccc}
 table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
 /* 太線クラス */
@@ -39,9 +44,9 @@ table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
 .border-week{border-left:2px solid #4a7fa8!important}
 
 /* 情報列・ラベル列 sticky */
-.col-info-th{width:240px;min-width:240px;position:sticky;left:0;z-index:12;background:#a8c8de;border-right:2px solid #888!important;border-bottom:2.5px solid #333!important}
-.col-rowlabel-th{width:28px;min-width:28px;position:sticky;left:240px;z-index:12;background:#a8c8de;border-right:2px solid #888!important}
-.prop-info-cell{width:240px;min-width:240px;max-width:240px;background:#fff;padding:2px 4px 2px 6px;border-right:3px solid #4a7fa8;position:sticky;left:0;z-index:10;overflow:hidden}
+.col-info-th{width:240px;min-width:240px;position:sticky;left:0;top:41px;z-index:15;background:#a8c8de;border-right:2px solid #888!important;border-bottom:2.5px solid #333!important}
+.col-rowlabel-th{width:28px;min-width:28px;position:sticky;left:240px;top:41px;z-index:15;background:#a8c8de;border-right:2px solid #888!important}
+.prop-info-cell{width:240px;min-width:240px;max-width:240px;background:#fff;padding:2px 4px 2px 6px;border-right:3px solid #4a7fa8;position:sticky;left:0;z-index:10;overflow:hidden;background-color:#fff}
 .row-label{width:28px;min-width:28px;max-width:28px;background:#f0f4f7;font-size:9px;color:#555;text-align:center;position:sticky;left:240px;z-index:10}
 
 /* 日曜列 */
@@ -1185,8 +1190,14 @@ function sortByPcDate(){
   state.properties.sort((a,b)=>{
     const pa=earliestPc(a),pb=earliestPc(b);
     const ea=!pa,eb=!pb;
+    /* 全日程空欄（PC着・土台・上棟すべてなし）は最後 */
+    const allEmptyA=ea&&!a.dodai&&!a.joto;
+    const allEmptyB=eb&&!b.dodai&&!b.joto;
+    if(allEmptyA&&allEmptyB) return 0;
+    if(allEmptyA) return 1;   /* aを後ろに */
+    if(allEmptyB) return -1;  /* bを後ろに */
     if(ea&&eb){
-      /* 両方PC着なし → 土台敷き順 → 上棟順 */
+      /* PC着なし・土台or上棟あり → 土台敷き順 → 上棟順 */
       if(a.dodai&&b.dodai) return a.dodai.localeCompare(b.dodai);
       if(a.dodai)return -1;if(b.dodai)return 1;
       if(a.joto&&b.joto) return a.joto.localeCompare(b.joto);
@@ -1194,7 +1205,7 @@ function sortByPcDate(){
       return 0;
     }
     if(ea)return -1;if(eb)return 1;
-    /* PC着日が同じなら土台敷き順 → 上棟順 */
+    /* PC着日順 → 土台敷き順 → 上棟順 */
     const pc=pa.localeCompare(pb);
     if(pc!==0)return pc;
     if(a.dodai&&b.dodai){const d=a.dodai.localeCompare(b.dodai);if(d!==0)return d;}
