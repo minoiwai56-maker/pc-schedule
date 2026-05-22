@@ -393,6 +393,9 @@ body.view-mode .view-badge{display:inline-flex!important}
   </div>
 </div>
 
+<!-- Firebase SDK (compat版: グローバル変数として使用可能) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <div class="toast no-print" id="toastEl"></div>
 <script>
 /* ===== 祝日 ===== */
@@ -431,6 +434,44 @@ async function fetchHolidays(){
 
 function isHoliday(d){ return !!HOLIDAYS[isoDate(d)]; }
 function holidayName(d){ return HOLIDAYS[isoDate(d)]||''; }
+
+/* ===== Firebase設定・初期化 ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAvDOvk4BzA2Gmb5S80kLgNYxuJ1Z8rZ4E",
+  authDomain: "pc-schedule.firebaseapp.com",
+  databaseURL: "https://pc-schedule-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "pc-schedule",
+  storageBucket: "pc-schedule.firebasestorage.app",
+  messagingSenderId: "853583551038",
+  appId: "1:853583551038:web:3bd1496cf364cbdcfc4f6f",
+  measurementId: "G-Q3MLT22SCY"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+const DB_REF=db.ref("schedule");
+let _fbListening=false;
+
+/* Firebaseにデータを保存 */
+function saveToFirebase(){
+  if(IS_VIEW_MODE)return;
+  const s={...state};delete s.dragData;
+  s.startDate=s.startDate?isoDate(s.startDate):null;
+  DB_REF.set(s).then(()=>showAutoSave()).catch(e=>console.warn("Firebase save error:",e));
+}
+
+/* Firebaseからデータをリアルタイム受信 */
+function listenFirebase(){
+  if(_fbListening)return;
+  _fbListening=true;
+  DB_REF.on("value",snapshot=>{
+    const saved=snapshot.val();
+    if(!saved)return;
+    if(saved.startDate)saved.startDate=toDate(saved.startDate);
+    Object.assign(state,saved);state.dragData=null;
+    migratePcdate();
+    renderTable();
+  },e=>console.warn("Firebase listen error:",e));
+}
 
 /* ===== 六曜（旧暦朔日テーブルによる正確計算）===== */
 /* 大安0 赤口1 先勝2 友引3 先負4 仏滅5  ← (旧暦月+旧暦日)%6 のインデックス */
@@ -566,10 +607,13 @@ const TODAY=new Date();TODAY.setHours(0,0,0,0);
 
 /* ===== 保存 ===== */
 function saveData(){
+  if(IS_VIEW_MODE)return;
+  /* LocalStorageにも保存（オフライン対応）*/
   const s={...state};delete s.dragData;
   s.startDate=s.startDate?isoDate(s.startDate):null;
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(s));showAutoSave();}
-  catch(e){alert('保存に失敗しました: '+e.message)}
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(s));}catch(e){}
+  /* Firebaseにも保存 */
+  saveToFirebase();
 }
 function loadData(){
   try{
@@ -1441,14 +1485,18 @@ async function init(){
     }catch(e){
       showToast('データ読み込み失敗。管理者にご連絡ください。');
     }
+    /* 閲覧モードもFirebaseをリッスンしてリアルタイム反映 */
+    listenFirebase();
     /* 閲覧モードではD&D・インライン編集・セル入力を無効化 */
     window.onCellClick=function(){};
     window.onBadgeDblClick=function(){};
     window.openInlineEdit=function(){};
   } else {
-    /* 編集モード: LocalStorageから読み込み */
+    /* 編集モード: まずLocalStorageから読み込み、その後Firebaseをリッスン */
     loadData();
     migratePcdate();
+    /* Firebaseのリアルタイム同期開始（接続後にFirebaseデータで上書き） */
+    listenFirebase();
   }
   if(!state.startDate)initStart();
   renderTable();
