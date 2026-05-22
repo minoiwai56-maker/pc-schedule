@@ -56,7 +56,7 @@ th.col-sun{background:#f5c0cb!important}
 .schedule-cell:hover:not(.col-sun){background:#eef5fb}
 
 /* 物件概要セル内 */
-.prop-name{font-weight:700;color:#222;white-space:nowrap;overflow:hidden;line-height:1.2;background:#e3f0fa;padding:1px 3px;border-radius:2px}
+.prop-name{font-weight:700;color:#222;white-space:nowrap;overflow:hidden;line-height:1.2;padding:1px 3px;border-radius:2px}
 .prop-maker-line{color:#444;margin-top:0;line-height:1.2;display:flex;align-items:baseline;justify-content:space-between;gap:2px}
 .prop-meta{font-size:10px;color:#555;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prop-dates{font-size:10px;color:#333;margin-top:0;line-height:1.5;display:flex;flex-wrap:wrap;gap:0 5px}
@@ -463,6 +463,22 @@ function toDate(s){
   return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+/* PC担当別・物件名背景色マップ */
+const PC_NAME_BG={
+  '泉(大)':'#e3f0fa',  /* 薄いブルー */
+  '泉(悟)':'#e3f0fa',
+  '泉':'#e3f0fa',
+  '安松':'#fef9e3',    /* 薄い黄色 */
+};
+function getPcNameBg(pcStaff){
+  if(!pcStaff)return'#f0f0f0';
+  /* 前方一致で検索 */
+  for(const [key,color] of Object.entries(PC_NAME_BG)){
+    if(pcStaff.startsWith(key)||key.startsWith(pcStaff))return color;
+  }
+  return '#f0f0f0'; /* 未登録は薄グレー */
+}
+
 /* PC着日フィールド追加 */
 function addPcdateField(){
   const wrap=document.getElementById('f_pcdates_wrap');
@@ -730,7 +746,7 @@ function renderTable(){
 
     const infoCell=`<td class="prop-info-cell" rowspan="5" style="position:relative">
       <button class="prop-delete-btn no-print" onclick="deleteProp(${prop.id})" title="削除">✕</button>
-      <div class="prop-name editable" style="font-size:${nameFs}px" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
+      <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)}" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
       ${(()=>{
         const _mn=prop.makerName
           ?('<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'makerName\',\'工務店名\',\'makerSelect\')"><b>'+esc(prop.makerName)+'</b></span>')
@@ -894,6 +910,26 @@ function closeInlineEdit(save){
         if(val){
           const newKey=`${prop.id}_${val}_koudo`;
           state.cellTexts[newKey]=label;
+        }
+        /* pcdateの場合はpcdates配列も更新 */
+        if(_editCtx.field==='pcdate'){
+          const _pcs=(prop.pcdates&&prop.pcdates.length?[...prop.pcdates]:(oldVal?[oldVal]:[])).filter(Boolean);
+          /* 古い日付を新しい日付に置き換え（なければ追加） */
+          const _oldIdx=_pcs.indexOf(oldVal);
+          if(_oldIdx>=0&&val) _pcs[_oldIdx]=val;
+          else if(_oldIdx>=0&&!val) _pcs.splice(_oldIdx,1);
+          else if(val&&!_pcs.includes(val)) _pcs.push(val);
+          prop.pcdates=_pcs.filter(Boolean).sort();
+          prop.pcdate=prop.pcdates[0]||'';
+          /* cellTextのPC着ラベルを件数に応じて再設定 */
+          Object.keys(state.cellTexts).forEach(k=>{
+            if(k.startsWith(prop.id+'_')&&k.endsWith('_koudo')&&state.cellTexts[k].startsWith('PC着'))
+              delete state.cellTexts[k];
+          });
+          const _tot=prop.pcdates.length;
+          prop.pcdates.forEach((_pd,_pi)=>{
+            state.cellTexts[prop.id+'_'+_pd+'_koudo']=_tot===1?'PC着':('PC着'+(_pi+1));
+          });
         }
       }
       scheduleAutoSave();
