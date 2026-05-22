@@ -24,16 +24,16 @@ button.btn:hover{opacity:.85}
 .week-toggle{display:flex;gap:3px}
 .week-btn{border:1px solid #aaa;background:#fff;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .15s;font-family:inherit;color:#333}
 .week-btn.active{background:#6a9fc0;color:#fff;border-color:#6a9fc0}
-.table-wrap{overflow-x:auto;padding:8px;min-height:200px}
+.table-wrap{overflow-x:auto;overflow-y:visible;padding:8px;min-height:200px}
 
 /* ===== SCHEDULE TABLE ===== */
 table.schedule{border-collapse:collapse;font-size:11px;width:100%;background:#fff;table-layout:fixed;border:2px solid #555}
 table.schedule th,table.schedule td{border:1px solid #ccc;padding:1px 2px;white-space:nowrap;vertical-align:middle;overflow:hidden}
 table.schedule thead th,table.schedule thead td{position:sticky;z-index:11}
 /* ヘッダー行1（日付）: toolbarの下に固定 */
-table.schedule thead tr:first-child th{top:41px}
+table.schedule thead tr:first-child th{top:77px}
 /* ヘッダー行2（六曜）: 行1の高さ分下に固定（約28px）*/
-table.schedule thead tr:last-child td{top:69px}
+table.schedule thead tr:last-child td{top:103px}
 table.schedule thead th{border-top:2px solid #555;border-bottom:1px solid #ccc}
 table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
 /* 太線クラス */
@@ -44,8 +44,8 @@ table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
 .border-week{border-left:2px solid #4a7fa8!important}
 
 /* 情報列・ラベル列 sticky */
-.col-info-th{width:240px;min-width:240px;position:sticky;left:0;top:41px;z-index:15;background:#a8c8de;border-right:2px solid #888!important;border-bottom:2.5px solid #333!important}
-.col-rowlabel-th{width:28px;min-width:28px;position:sticky;left:240px;top:41px;z-index:15;background:#a8c8de;border-right:2px solid #888!important}
+.col-info-th{width:240px;min-width:240px;position:sticky;left:0;top:77px;z-index:15;background:#a8c8de;border-right:2px solid #888!important;border-bottom:2.5px solid #333!important}
+.col-rowlabel-th{width:28px;min-width:28px;position:sticky;left:240px;top:77px;z-index:15;background:#a8c8de;border-right:2px solid #888!important}
 .prop-info-cell{width:240px;min-width:240px;max-width:240px;background:#fff;padding:2px 4px 2px 6px;border-right:3px solid #4a7fa8;position:sticky;left:0;z-index:10;overflow:hidden;background-color:#fff}
 .row-label{width:28px;min-width:28px;max-width:28px;background:#f0f4f7;font-size:9px;color:#555;text-align:center;position:sticky;left:240px;z-index:10}
 
