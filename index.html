@@ -75,7 +75,7 @@ th.col-sun{background:#f5c0cb!important}
 .date-label{color:#888;font-size:9px}
 .prop-note{font-size:10px;color:#555;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prop-staff{font-size:10px;color:#555;margin-top:0}
-.prop-delete-btn{position:absolute;right:2px;top:2px;background:none;border:none;color:#ccc;cursor:pointer;font-size:11px;line-height:1;padding:0;z-index:2}
+.prop-delete-btn{position:static;background:none;border:none;color:#ccc;cursor:pointer;font-size:11px;line-height:1;padding:0;flex-shrink:0}
 .prop-delete-btn:hover{color:#c0392b}
 
 /* 固定レンタカー行 */
@@ -853,10 +853,10 @@ function renderTable(){
     const staffOpts=(mk?mk.staff:[]).map(s=>`<option value="${esc(s)}"${prop.makerStaff===s?' selected':''}>${esc(s)}</option>`).join('');
 
     const infoCell=`<td class="prop-info-cell" rowspan="5" style="position:relative">
-      <button class="prop-delete-btn no-print" onclick="deleteProp(${prop.id})" title="削除">✕</button>
-      <div style="display:flex;align-items:baseline;gap:3px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:3px;overflow:hidden">
         <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
         ${(()=>{const _fc=getFactoryColor(prop.pcFactory);return prop.pcFactory?`<span class='pc-factory-tag editable' style='background:${_fc.bg};color:${_fc.color};border-color:${_fc.border}' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を変更'>${esc(prop.pcFactory)}</span>`:`<span class='pc-factory-tag pc-factory-empty editable no-print' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を設定'>未設定</span>`})()} 
+        <button class="prop-delete-btn no-print" onclick="deleteProp(${prop.id})" title="削除" style="position:static;margin-left:auto;flex-shrink:0">✕</button>
       </div>
       ${(()=>{
         const _mn=prop.makerName
