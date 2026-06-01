@@ -856,7 +856,7 @@ function renderTable(){
       <div style="display:flex;align-items:center;gap:3px;overflow:hidden">
         <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
         ${(()=>{const _fc=getFactoryColor(prop.pcFactory);return prop.pcFactory?`<span class='pc-factory-tag editable' style='background:${_fc.bg};color:${_fc.color};border-color:${_fc.border}' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を変更'>${esc(prop.pcFactory)}</span>`:`<span class='pc-factory-tag pc-factory-empty editable no-print' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を設定'>未設定</span>`})()} 
-        <button class="prop-delete-btn no-print" onclick="deleteProp(${prop.id})" title="削除" style="position:static;margin-left:auto;flex-shrink:0">✕</button>
+        <button class="prop-delete-btn no-print edit-only" onclick="deleteProp(${prop.id})" title="削除" style="position:static;margin-left:auto;flex-shrink:0">✕</button>
       </div>
       ${(()=>{
         const _mn=prop.makerName
