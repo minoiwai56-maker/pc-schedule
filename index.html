@@ -550,6 +550,23 @@ function toDate(s){
   return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+/* PC工場別カラーパレット */
+/* index 0=中国木材(緑), 1=朝間PC(赤), 以降は青・紫・オレンジ・青緑の順 */
+const FACTORY_COLORS=[
+  {bg:'#e8f5e9',color:'#2e7d32',border:'#a5d6a7'},  /* 緑: 中国木材 */
+  {bg:'#ffebee',color:'#c62828',border:'#ef9a9a'},  /* 赤: 朝間PC */
+  {bg:'#e3f2fd',color:'#1565c0',border:'#90caf9'},  /* 青 */
+  {bg:'#f3e5f5',color:'#6a1b9a',border:'#ce93d8'},  /* 紫 */
+  {bg:'#fff3e0',color:'#e65100',border:'#ffb74d'},  /* オレンジ */
+  {bg:'#e0f2f1',color:'#00695c',border:'#80cbc4'},  /* 青緑 */
+];
+function getFactoryColor(factoryName){
+  if(!factoryName)return{bg:'#f5f5f5',color:'#aaa',border:'#ddd'};
+  const idx=state.pcFactories.indexOf(factoryName);
+  if(idx<0)return FACTORY_COLORS[FACTORY_COLORS.length-1];
+  return FACTORY_COLORS[idx%FACTORY_COLORS.length];
+}
+
 /* PC担当別・物件名背景色マップ */
 const PC_NAME_BG={
   '泉(大)':'#e3f0fa',  /* 薄いブルー */
@@ -839,7 +856,7 @@ function renderTable(){
       <button class="prop-delete-btn no-print" onclick="deleteProp(${prop.id})" title="削除">✕</button>
       <div style="display:flex;align-items:baseline;gap:3px;overflow:hidden">
         <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
-        ${prop.pcFactory?`<span class='pc-factory-tag editable' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を変更'>${esc(prop.pcFactory)}</span>`:`<span class='pc-factory-tag pc-factory-empty editable no-print' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を設定'>未設定</span>`}
+        ${(()=>{const _fc=getFactoryColor(prop.pcFactory);return prop.pcFactory?`<span class='pc-factory-tag editable' style='background:${_fc.bg};color:${_fc.color};border-color:${_fc.border}' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を変更'>${esc(prop.pcFactory)}</span>`:`<span class='pc-factory-tag pc-factory-empty editable no-print' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を設定'>未設定</span>`})()} 
       </div>
       ${(()=>{
         const _mn=prop.makerName
