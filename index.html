@@ -213,12 +213,10 @@ body.view-mode .view-badge{display:inline-flex!important}
     <button class="btn btn-green edit-only" onclick="openAddModal()">＋ 新規物件</button>
     <button class="btn btn-teal edit-only" onclick="saveData()">💾 保存</button>
     <button class="btn btn-purple edit-only" onclick="exportJSON()">⬇ エクスポート</button>
-    <button class="btn btn-gray edit-only" onclick="archiveJSON()">📦 アーカイブ</button>
-    <button class="btn btn-purple edit-only" onclick="document.getElementById('importFile').click()">⬆ インポート</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    <button class="btn btn-teal edit-only" onclick="openFactoryModal()">🏭 工場別一覧</button>
     <button class="btn btn-print" onclick="printSchedule()">🖨 印刷</button>
     <button class="btn btn-blue edit-only" onclick="openSettings()">⚙ 設定</button>
-    <button class="btn btn-orange" onclick="openDiscord()">📢 Discord</button>
   </div>
 </div>
 
@@ -288,6 +286,11 @@ body.view-mode .view-badge{display:inline-flex!important}
         <div style="flex:1;display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;font-weight:600;color:#555">営業担当</label><select id="f_sales"><option value="">-- 選択 --</option></select></div>
         <div style="flex:1;display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;font-weight:600;color:#555">PC担当</label><select id="f_pc"><option value="">-- 選択 --</option></select></div>
       </div>
+            <div class="form-group full"><label>PC工場</label>
+        <select id="f_pcFactory">
+          <option value="">-- 選択 --</option>
+        </select>
+      </div>
       <div class="form-group full"><label>備考</label><input type="text" id="f_note" placeholder="備考"></div>
     </div>
     <div class="modal-footer">
@@ -339,6 +342,23 @@ body.view-mode .view-badge{display:inline-flex!important}
           </div>
         </div>
       </div>
+    </div>
+    <div class="settings-section">
+      <h3>PC工場マスタ</h3>
+      <div class="staff-list" id="factoryList"></div>
+      <div style="display:flex;gap:4px;margin-top:6px">
+        <input class="small-input" id="newFactory" placeholder="工場名を入力してEnter または ＋" style="flex:1"
+          onkeydown="if(event.key==='Enter'){addFactory();event.preventDefault()}">
+        <button class="btn btn-blue" onclick="addFactory()">＋</button>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>バックアップ</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-gray" onclick="archiveJSON()">📦 アーカイブ保存</button>
+        <button class="btn btn-gray" onclick="document.getElementById('importFile').click()">⬆ インポート</button>
+      </div>
+      <div style="font-size:10px;color:#888;margin-top:6px">アーカイブ：タイムスタンプ付きJSONで保存。インポート：JSONファイルを読み込んでデータを復元。</div>
     </div>
     <div class="modal-footer"><button class="btn btn-gray" onclick="closeModal('settingsModal')">閉じる</button></div>
   </div>
@@ -396,6 +416,21 @@ body.view-mode .view-badge{display:inline-flex!important}
 <!-- Firebase SDK (compat版: グローバル変数として使用可能) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<!-- 工場別一覧モーダル -->
+<div class="modal-overlay" id="factoryModal" style="display:none">
+  <div class="modal" style="width:780px;max-height:85vh;overflow-y:auto">
+    <h2>🏭 PC工場別 出力一覧</h2>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <select id="factoryFilter" onchange="renderFactoryModal()" style="border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-size:12px;font-family:inherit"><option value="">全工場表示</option></select>
+      <button class="btn btn-blue" onclick="copyFactoryHTML()">HTMLコピー（Gmail用）</button>
+      <button class="btn btn-print" onclick="printFactory()">この工場のみ印刷</button>
+      <span id="htmlCopiedMsg" style="font-size:11px;color:#27ae60;display:none">コピーしました！</span>
+    </div>
+    <div id="factoryTableArea"></div>
+    <div class="modal-footer"><button class="btn btn-gray" onclick="closeModal('factoryModal')">閉じる</button></div>
+  </div>
+</div>
+
 <div class="toast no-print" id="toastEl"></div>
 <script>
 /* ===== 祝日 ===== */
@@ -601,6 +636,7 @@ let state={
   ],
   salesStaff:['社長','専務','高尾','川口','泉(大)','篠原','勝原','泉(悟)'],
   pcStaff:['安松','泉'],
+  pcFactories:['中国木材','朝間PC'],
   webhookUrl:'',dragData:null,cellTexts:{}
 };
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
@@ -801,7 +837,10 @@ function renderTable(){
 
     const infoCell=`<td class="prop-info-cell" rowspan="5" style="position:relative">
       <button class="prop-delete-btn no-print" onclick="deleteProp(${prop.id})" title="削除">✕</button>
-      <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)}" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
+      <div style="display:flex;align-items:baseline;gap:3px;overflow:hidden">
+        <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
+        ${prop.pcFactory?`<span class='pc-factory-tag editable' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を変更'>${esc(prop.pcFactory)}</span>`:`<span class='pc-factory-tag pc-factory-empty editable no-print' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を設定'>未設定</span>`}
+      </div>
       ${(()=>{
         const _mn=prop.makerName
           ?('<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'makerName\',\'工務店名\',\'makerSelect\')"><b>'+esc(prop.makerName)+'</b></span>')
@@ -923,6 +962,10 @@ function openInlineEdit(e,propId,field,label,type){
     const sel=document.getElementById('editSelect');
     const opts=['2階建て','3階建て','平屋','平屋/2階建て'];
     sel.innerHTML=opts.map(o=>`<option value="${o}"${prop[field]===o?' selected':''}>${o}</option>`).join('');
+    sel.style.display='block';
+  } else if(type==='pcFactorySelect'){
+    const sel=document.getElementById('editSelect');
+    sel.innerHTML='<option value="">-- 未設定 --</option>'+state.pcFactories.map(f=>`<option value="${esc(f)}"${prop[field]===f?' selected':''}>${esc(f)}</option>`).join('');
     sel.style.display='block';
   }
 
@@ -1278,11 +1321,12 @@ function deleteProp(id){
 function openAddModal(){
   ['f_name','f_tsubo','f_finalCheck','f_dodai','f_joto','f_note','f_makerFree']
     .forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f_pcFactory').value='';
   /* PC着日フィールドをリセット（1つだけに戻す） */
   const wrap=document.getElementById('f_pcdates_wrap');
   wrap.innerHTML='<input type="date" class="f_pcdate_item" style="margin-bottom:3px;width:100%;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit">';
   document.getElementById('f_floors').value='';
-  populateMakerSelect();populateSalesSelect();populatePcSelect();
+  populateMakerSelect();populateSalesSelect();populatePcSelect();populateFactorySelect();
   document.getElementById('addModal').style.display='flex';
 }
 function populateMakerSelect(){
@@ -1330,6 +1374,7 @@ function saveProperty(){
     sales:document.getElementById('f_sales').value,
     pc:document.getElementById('f_pc').value,
     note:document.getElementById('f_note').value,
+    pcFactory:document.getElementById('f_pcFactory').value,
   });
   /* 新規登録時：日付が入力されていればcellTextにも反映 */
   const _np=state.properties[state.properties.length-1];
@@ -1346,8 +1391,129 @@ function saveProperty(){
 }
 
 /* ===== 設定 ===== */
+/* ===== PC工場マスタ ===== */
+function populateFactorySelect(){
+  const sel=document.getElementById('f_pcFactory');
+  sel.innerHTML='<option value="">-- 選択 --</option>';
+  state.pcFactories.forEach(f=>sel.innerHTML+=`<option value="${esc(f)}">${esc(f)}</option>`);
+}
+function renderFactoryList(){
+  const el=document.getElementById('factoryList');
+  el.innerHTML=state.pcFactories.map((f,i)=>`<span class="staff-tag">${esc(f)}<button onclick="removeFactory(${i})">×</button></span>`).join('');
+}
+function addFactory(){
+  const inp=document.getElementById('newFactory');
+  const v=inp.value.trim();if(!v)return;
+  state.pcFactories.push(v);inp.value='';
+  renderFactoryList();scheduleAutoSave();
+}
+function removeFactory(i){
+  state.pcFactories.splice(i,1);
+  renderFactoryList();scheduleAutoSave();
+}
+
+/* ===== 工場別一覧モーダル ===== */
+function openFactoryModal(){
+  const sel=document.getElementById('factoryFilter');
+  sel.innerHTML='<option value="">全工場表示</option>';
+  state.pcFactories.forEach(f=>sel.innerHTML+=`<option value="${esc(f)}">${esc(f)}</option>`);
+  sel.innerHTML+='<option value="__unset__">工場未設定</option>';
+  renderFactoryModal();
+  document.getElementById('factoryModal').style.display='flex';
+}
+
+function renderFactoryModal(){
+  const filter=document.getElementById('factoryFilter').value;
+  const area=document.getElementById('factoryTableArea');
+  /* 表示対象の工場グループを決定 */
+  let groups=[];
+  if(filter===''||filter==='__unset__'){
+    state.pcFactories.forEach(f=>{
+      const props=state.properties.filter(p=>p.pcFactory===f);
+      if(filter===''||true) groups.push({name:f,props});
+    });
+    const unset=state.properties.filter(p=>!p.pcFactory);
+    if(filter===''&&unset.length) groups.push({name:'工場未設定',props:unset,isUnset:true});
+    if(filter==='__unset__') groups=[{name:'工場未設定',props:unset,isUnset:true}];
+  } else {
+    const props=state.properties.filter(p=>p.pcFactory===filter);
+    groups=[{name:filter,props}];
+  }
+  area.innerHTML=groups.map(g=>buildFactoryTable(g)).join('');
+}
+
+function buildFactoryTable(g){
+  const badgeStyle=g.isUnset
+    ?'background:#f5f5f5;color:#888;border:0.5px solid #ddd'
+    :'background:#e3f0fa;color:#0c447c;border:0.5px solid #90c5e8';
+  let html=`<div style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #ccc">
+      <span style="font-size:13px;font-weight:700;padding:3px 12px;border-radius:4px;${badgeStyle}">${esc(g.name)}</span>
+      <span style="font-size:12px;color:#888">${g.props.length}件</span>
+    </div>
+    <table id="factory-tbl-${esc(g.name)}" style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#f4f6f8">
+        <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:190px">現場名 / 工務店</th>
+        <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:55px">PC担当</th>
+        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:90px">PC着日</th>
+        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:75px">土台敷き</th>
+        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:75px">上棟日</th>
+        <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd">備考</th>
+      </tr></thead><tbody>`;
+  if(g.props.length===0){
+    html+='<tr><td colspan="6" style="padding:10px;text-align:center;color:#aaa">物件がありません</td></tr>';
+  } else {
+    g.props.forEach(p=>{
+      const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean).sort();
+      const pcStr=pcs.length?pcs.map(d=>`<span style="font-weight:700;font-size:13px;color:#922b21;background:#fdecea;padding:2px 8px;border-radius:4px;border:1px solid #f1948a;display:inline-block;margin:1px">${fmtShort(d)}着</span>`).join(' '):'<span style="color:#aaa">未設定</span>';
+      const pcBg=p.pc==='安松'?'background:#fef9e3;color:#7d6608':'background:#e3f0fa;color:#1a5276';
+      html+=`<tr>
+        <td style="padding:6px 8px;border:0.5px solid #ddd">
+          <div style="font-weight:700;font-size:14px;color:#222">${esc(p.name||'')} </div>
+          <div style="font-size:11px;color:#666">${esc(p.makerName||'')}${p.makerStaff?' ('+esc(p.makerStaff)+')':''}</div>
+        </td>
+        <td style="padding:6px 8px;border:0.5px solid #ddd"><span style="font-size:11px;padding:2px 7px;border-radius:4px;${pcBg}">${esc(p.pc||'--')}</span></td>
+        <td style="padding:6px 8px;border:0.5px solid #ddd;text-align:center">${pcStr}</td>
+        <td style="padding:6px 8px;border:0.5px solid #ddd;text-align:center;font-size:12px">${p.dodai?fmtShort(p.dodai):'<span style="color:#aaa">未定</span>'}</td>
+        <td style="padding:6px 8px;border:0.5px solid #ddd;text-align:center;font-size:12px">${p.joto?fmtShort(p.joto):'<span style="color:#aaa">未定</span>'}</td>
+        <td style="padding:6px 8px;border:0.5px solid #ddd;font-size:12px;color:#555">${esc(p.note||'')} </td>
+      </tr>`;
+    });
+  }
+  html+='</tbody></table></div>';
+  return html;
+}
+
+function copyFactoryHTML(){
+  const area=document.getElementById('factoryTableArea');
+  const sel=window.getSelection();
+  const range=document.createRange();
+  range.selectNodeContents(area);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  document.execCommand('copy');
+  sel.removeAllRanges();
+  const msg=document.getElementById('htmlCopiedMsg');
+  msg.style.display='inline';
+  setTimeout(()=>msg.style.display='none',2500);
+}
+
+function printFactory(){
+  const area=document.getElementById('factoryTableArea').innerHTML;
+  const filter=document.getElementById('factoryFilter').value;
+  const title=filter&&filter!=='__unset__'?filter:filter==='__unset__'?'工場未設定':'全工場';
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>PC工場別一覧 ${title}</title>
+  <style>body{font-family:Meiryo,sans-serif;font-size:11px;padding:10mm}table{width:100%;border-collapse:collapse}th,td{border:0.5px solid #ccc;padding:5px 7px}th{background:#f4f6f8}@page{size:A4 portrait;margin:10mm}</style>
+  </head><body><h2 style="margin-bottom:10px">PC工場別 搬入予定一覧【${title}】</h2>${area}</body></html>`);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>w.print(),500);
+}
+
 function openSettings(){
-  renderMakerList();renderStaffLists();
+
+  renderMakerList();renderStaffLists();renderFactoryList();
   const wh=document.getElementById('webhookUrl');if(wh)wh.value=state.webhookUrl||'';
   document.getElementById('settingsModal').style.display='flex';
 }
