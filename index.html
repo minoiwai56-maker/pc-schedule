@@ -424,10 +424,11 @@ body.view-mode .view-badge{display:inline-flex!important}
 <!-- 工場別一覧モーダル -->
 <div class="modal-overlay" id="factoryModal" style="display:none">
   <div class="modal" style="width:840px;max-height:85vh;overflow-y:auto">
-    <div style="display:flex;align-items:center;margin-bottom:12px">
-      <h2 style="flex:1">🏭 PC工場別 出力一覧</h2>
-      <button class="btn btn-gray" onclick="closeModal('factoryModal')">✕ 閉じる</button>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0">
+      <h2 style="border-bottom:2px solid #6a9fc0;padding-bottom:6px;flex:1;margin-right:12px">🏭 PC工場別 出力一覧</h2>
+      <button class="btn btn-gray" onclick="closeModal('factoryModal')" style="flex-shrink:0;margin-top:0">✕ 閉じる</button>
     </div>
+    <div style="margin-bottom:14px"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <select id="factoryFilter" onchange="renderFactoryModal()" style="border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-size:12px;font-family:inherit"><option value="">全工場表示</option></select>
       <button class="btn btn-blue" onclick="copyFactoryHTML()">HTMLコピー（Gmail用）</button>
@@ -435,7 +436,7 @@ body.view-mode .view-badge{display:inline-flex!important}
       <span id="htmlCopiedMsg" style="font-size:11px;color:#27ae60;display:none">コピーしました！</span>
     </div>
     <div id="factoryTableArea"></div>
-    <div class="modal-footer"><button class="btn btn-gray" onclick="closeModal('factoryModal')">閉じる</button></div>
+    <div class="modal-footer"><button class="btn btn-gray" onclick="closeModal('factoryModal')">✕ 閉じる</button></div>
   </div>
 </div>
 
