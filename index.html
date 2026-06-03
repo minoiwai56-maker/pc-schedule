@@ -74,6 +74,10 @@ th.col-sun{background:#f5c0cb!important}
 .pc-arrival{font-weight:700;color:#d4600a;font-size:15px}
 .date-label{color:#888;font-size:9px}
 .prop-note{font-size:10px;color:#555;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prop-status-tag{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;border:0.5px solid;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.status-new{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
+.status-change{background:#fff3e0;color:#e65100;border-color:#ffb74d}
+.status-none{background:#f5f5f5;color:#bbb;border-color:#ddd}
 .prop-staff{font-size:10px;color:#555;margin-top:0}
 .prop-delete-btn{position:static;background:none;border:none;color:#ccc;cursor:pointer;font-size:11px;line-height:1;padding:0;flex-shrink:0}
 .prop-delete-btn:hover{color:#c0392b}
@@ -984,6 +988,12 @@ function openInlineEdit(e,propId,field,label,type){
     const sel=document.getElementById('editSelect');
     sel.innerHTML='<option value="">-- 未設定 --</option>'+state.pcFactories.map(f=>`<option value="${esc(f)}"${prop[field]===f?' selected':''}>${esc(f)}</option>`).join('');
     sel.style.display='block';
+  } else if(type==='statusSelect'){
+    const sel=document.getElementById('editSelect');
+    const opts=['','新規','変更'];
+    const lbls=['―（なし）','新規','変更'];
+    sel.innerHTML=opts.map((o,i)=>`<option value="${o}"${(prop[field]||'')===o?' selected':''}>${lbls[i]}</option>`).join('');
+    sel.style.display='block';
   }
 
   /* ポップアップの位置をクリック位置の近くに */
@@ -1445,11 +1455,19 @@ function renderFactoryModal(){
   /* 表示対象の工場グループを決定 */
   let groups=[];
   if(filter===''||filter==='__unset__'){
-    state.pcFactories.forEach(f=>{
-      const props=state.properties.filter(p=>p.pcFactory===f);
+    /* 当日より前にPC着済みの物件を除外（全PC着日が今日より前の物件は非表示）*/
+  const todayStr=isoDate(TODAY);
+  function isRelevant(p){
+    const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean).sort();
+    if(pcs.length===0) return true; /* PC着未設定は表示 */
+    /* 最新のPC着日が今日以降なら表示 */
+    return pcs[pcs.length-1]>=todayStr;
+  }
+  state.pcFactories.forEach(f=>{
+      const props=state.properties.filter(p=>p.pcFactory===f&&isRelevant(p));
       if(filter===''||true) groups.push({name:f,props});
     });
-    const unset=state.properties.filter(p=>!p.pcFactory);
+    const unset=state.properties.filter(p=>!p.pcFactory&&isRelevant(p));
     if(filter===''&&unset.length) groups.push({name:'工場未設定',props:unset,isUnset:true});
     if(filter==='__unset__') groups=[{name:'工場未設定',props:unset,isUnset:true}];
   } else {
@@ -1470,7 +1488,8 @@ function buildFactoryTable(g){
     </div>
     <table id="factory-tbl-${esc(g.name)}" style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="background:#f4f6f8">
-        <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:190px">現場名 / 工務店</th>
+        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:50px">状態</th>
+        <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:180px">現場名 / 工務店</th>
         <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:55px">PC担当</th>
         <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:90px">PC着日</th>
         <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:75px">土台敷き</th>
@@ -1485,6 +1504,13 @@ function buildFactoryTable(g){
       const pcStr=pcs.length?pcs.map(d=>`<span style="font-weight:700;font-size:13px;color:#922b21;background:#fdecea;padding:2px 8px;border-radius:4px;border:1px solid #f1948a;display:inline-block;margin:1px">${fmtShort(d)}着</span>`).join(' '):'<span style="color:#aaa">未設定</span>';
       const pcBg=p.pc==='安松'?'background:#fef9e3;color:#7d6608':'background:#e3f0fa;color:#1a5276';
       html+=`<tr>
+        ${(()=>{
+          const _s=p.pcStatus||'';
+          const _sc=_s==='新規'?'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7':_s==='変更'?'background:#fff3e0;color:#e65100;border:1px solid #ffb74d':'background:#f5f5f5;color:#bbb;border:1px solid #ddd';
+          const _cycle=['','新規','変更'];
+          const _nextIdx=(_cycle.indexOf(_s)+1)%_cycle.length;
+          return `<td style="padding:6px 8px;border:0.5px solid #ddd;text-align:center"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;cursor:pointer;${_sc}" onclick="cycleStatus('${p.id}')" title='クリックで切り替え'>${_s||'―'}</span></td>`;
+        })()}
         <td style="padding:6px 8px;border:0.5px solid #ddd">
           <div style="font-weight:700;font-size:14px;color:#222">${esc(p.name||'')} </div>
           <div style="font-size:11px;color:#666">${esc(p.makerName||'')}${p.makerStaff?' ('+esc(p.makerStaff)+')':''}</div>
@@ -1500,6 +1526,18 @@ function buildFactoryTable(g){
   }
   html+='</tbody></table></div>';
   return html;
+}
+
+/* ステータスをクリックで切り替え */
+function cycleStatus(propId){
+  const prop=state.properties.find(p=>String(p.id)===String(propId));
+  if(!prop)return;
+  const cycle=['','新規','変更'];
+  const cur=prop.pcStatus||'';
+  const next=cycle[(cycle.indexOf(cur)+1)%cycle.length];
+  prop.pcStatus=next;
+  scheduleAutoSave();
+  renderFactoryModal();
 }
 
 function copyFactoryHTML(){
