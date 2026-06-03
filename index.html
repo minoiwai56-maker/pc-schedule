@@ -862,7 +862,31 @@ function renderTable(){
     html+='<tbody><tr><td colspan="'+(dates.length+2)+'" style="padding:24px;text-align:center;color:#aaa">物件がありません。「＋ 新規物件」ボタンで追加してください。</td></tr></tbody>';
   }
 
+  /* 表示開始日より前に全予定が終了している物件を非表示 */
+  const _pStart=dates[0].getTime();
+  function allBeforePeriod(prop){
+    /* 最も遅い予定日を求める */
+    const pcs=(prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean);
+    const allDates=[];
+    pcs.forEach(d=>{const t=toDate(d);if(t)allDates.push(t.getTime());});
+    if(prop.dodai){const t=toDate(prop.dodai);if(t)allDates.push(t.getTime());}
+    if(prop.joto){const t=toDate(prop.joto);if(t)allDates.push(t.getTime());}
+    /* セル入力も確認 */
+    const rowKeys=['koudo','am1','am2','pm1','pm2'];
+    Object.keys(state.cellTexts).forEach(k=>{
+      if(!k.startsWith(prop.id+'_'))return;
+      const parts=k.split('_');
+      if(parts.length>=3&&rowKeys.includes(parts[2])){
+        const t=toDate(parts[1]);if(t)allDates.push(t.getTime());
+      }
+    });
+    if(allDates.length===0) return false; /* 予定なし → 表示 */
+    const latest=Math.max(...allDates);
+    return latest<_pStart; /* 最後の予定が表示開始日より前 → 非表示 */
+  }
+
   for(const prop of state.properties){
+    if(allBeforePeriod(prop)) continue;
     /* pcdates配列から最も早い日を取得 */
     const _allPc=(prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean).sort();
     const _earliestPc=_allPc[0]||'';
@@ -1759,14 +1783,6 @@ async function init(){
   setWeeks(state.weeks||3);
   setInterval(updateTime,30000);
   fetchHolidays();
-  /* デバッグ: 日付形式確認 */
-  setTimeout(()=>{
-    console.log("=== 日付形式デバッグ ===");
-    state.properties.forEach(p=>{
-      const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean);
-      console.log(p.name, {pcdate:p.pcdate, pcdates:pcs, dodai:p.dodai, joto:p.joto});
-    });
-  },3000);
 }
 init();
 </script>
