@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PC搬入予定表</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans JP','Meiryo',sans-serif;font-size:12px;background:#eef1f5;color:#222;min-height:100vh}
@@ -1486,7 +1487,7 @@ function buildFactoryTable(g){
       <span style="font-size:13px;font-weight:700;padding:3px 12px;border-radius:4px;${badgeStyle}">${esc(g.name)}</span>
       <span style="font-size:12px;color:#888">${g.props.length}件</span>
     </div>
-    <table id="factory-tbl-${esc(g.name)}" style="width:100%;border-collapse:collapse;font-size:12px">
+    <table id="factory-tbl-${esc(g.name)}" style="width:100%;border-collapse:collapse;font-size:12px;table-layout:auto">
       <thead><tr style="background:#f4f6f8">
         <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:44px;white-space:nowrap">状態</th>
         <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:170px">現場名 / 工務店</th>
