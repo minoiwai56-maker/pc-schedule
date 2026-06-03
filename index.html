@@ -1453,26 +1453,24 @@ function openFactoryModal(){
 function renderFactoryModal(){
   const filter=document.getElementById('factoryFilter').value;
   const area=document.getElementById('factoryTableArea');
-  /* 表示対象の工場グループを決定 */
-  let groups=[];
-  if(filter===''||filter==='__unset__'){
-    /* 当日より前にPC着済みの物件を除外（全PC着日が今日より前の物件は非表示）*/
+  /* 当日より前にPC着済みの物件を除外（全条件共通）*/
   const todayStr=isoDate(TODAY);
   function isRelevant(p){
     const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean).sort();
-    if(pcs.length===0) return true; /* PC着未設定は表示 */
-    /* 最新のPC着日が今日以降なら表示 */
+    if(pcs.length===0) return true;
     return pcs[pcs.length-1]>=todayStr;
   }
-  state.pcFactories.forEach(f=>{
+  let groups=[];
+  if(filter===''||filter==='__unset__'){
+    state.pcFactories.forEach(f=>{
       const props=state.properties.filter(p=>p.pcFactory===f&&isRelevant(p));
-      if(filter===''||true) groups.push({name:f,props});
+      groups.push({name:f,props});
     });
     const unset=state.properties.filter(p=>!p.pcFactory&&isRelevant(p));
     if(filter===''&&unset.length) groups.push({name:'工場未設定',props:unset,isUnset:true});
     if(filter==='__unset__') groups=[{name:'工場未設定',props:unset,isUnset:true}];
   } else {
-    const props=state.properties.filter(p=>p.pcFactory===filter);
+    const props=state.properties.filter(p=>p.pcFactory===filter&&isRelevant(p));
     groups=[{name:filter,props}];
   }
   area.innerHTML=groups.map(g=>buildFactoryTable(g)).join('');
