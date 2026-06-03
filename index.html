@@ -510,9 +510,13 @@ function listenFirebase(){
   DB_REF.on("value",snapshot=>{
     let saved=snapshot.val();
     if(!saved)return;
-    saved=normalizeDates(saved);
-    if(saved.startDate)saved.startDate=toDate(saved.startDate);
-    Object.assign(state,saved);state.dragData=null;
+    const normalized=normalizeDates(JSON.parse(JSON.stringify(saved)));
+    /* 正規化でデータが変わった場合はFirebaseに書き戻す */
+    if(JSON.stringify(normalized.properties)!==JSON.stringify(saved.properties)){
+      DB_REF.set(normalized);
+    }
+    if(normalized.startDate)normalized.startDate=toDate(normalized.startDate);
+    Object.assign(state,normalized);state.dragData=null;
     migratePcdate();
     renderTable();
   },e=>console.warn("Firebase listen error:",e));
