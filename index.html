@@ -422,7 +422,7 @@ body.view-mode .view-badge{display:inline-flex!important}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <!-- 工場別一覧モーダル -->
 <div class="modal-overlay" id="factoryModal" style="display:none">
-  <div class="modal" style="width:780px;max-height:85vh;overflow-y:auto">
+  <div class="modal" style="width:840px;max-height:85vh;overflow-y:auto">
     <h2>🏭 PC工場別 出力一覧</h2>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <select id="factoryFilter" onchange="renderFactoryModal()" style="border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-size:12px;font-family:inherit"><option value="">全工場表示</option></select>
@@ -1488,12 +1488,12 @@ function buildFactoryTable(g){
     </div>
     <table id="factory-tbl-${esc(g.name)}" style="width:100%;border-collapse:collapse;font-size:12px">
       <thead><tr style="background:#f4f6f8">
-        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:50px">状態</th>
-        <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:180px">現場名 / 工務店</th>
-        <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:55px">PC担当</th>
-        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:90px">PC着日</th>
-        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:75px">土台敷き</th>
-        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:75px">上棟日</th>
+        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:44px;white-space:nowrap">状態</th>
+        <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:170px">現場名 / 工務店</th>
+        <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd;width:48px;white-space:nowrap">PC担当</th>
+        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:85px;white-space:nowrap">PC着日</th>
+        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:68px;white-space:nowrap">土台敷き</th>
+        <th style="text-align:center;padding:6px 8px;border:0.5px solid #ddd;width:62px;white-space:nowrap">上棟日</th>
         <th style="text-align:left;padding:6px 8px;border:0.5px solid #ddd">備考</th>
       </tr></thead><tbody>`;
   if(g.props.length===0){
@@ -1516,7 +1516,7 @@ function buildFactoryTable(g){
           <div style="font-size:11px;color:#666">${esc(p.makerName||'')}${p.makerStaff?' ('+esc(p.makerStaff)+')':''}</div>
           <div style="font-size:10px;color:#999;margin-top:1px">${esc(p.tsubo)||'--'}坪/${esc(p.floors)||'--'}階</div>
         </td>
-        <td style="padding:6px 8px;border:0.5px solid #ddd"><span style="font-size:11px;padding:2px 7px;border-radius:4px;${pcBg}">${esc(p.pc||'--')}</span></td>
+        <td style="padding:6px 8px;border:0.5px solid #ddd;white-space:nowrap"><span style="font-size:11px;padding:2px 7px;border-radius:4px;${pcBg}">${esc(p.pc||'--')}</span></td>
         <td style="padding:6px 8px;border:0.5px solid #ddd;text-align:center">${pcStr}</td>
         <td style="padding:6px 8px;border:0.5px solid #ddd;text-align:center;font-size:12px">${p.dodai?fmtShort(p.dodai):'<span style="color:#aaa">未定</span>'}</td>
         <td style="padding:6px 8px;border:0.5px solid #ddd;text-align:center;font-size:12px">${p.joto?fmtShort(p.joto):'<span style="color:#aaa">未定</span>'}</td>
