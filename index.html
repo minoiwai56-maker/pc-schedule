@@ -508,8 +508,9 @@ function listenFirebase(){
   if(_fbListening)return;
   _fbListening=true;
   DB_REF.on("value",snapshot=>{
-    const saved=snapshot.val();
+    let saved=snapshot.val();
     if(!saved)return;
+    saved=normalizeDates(saved);
     if(saved.startDate)saved.startDate=toDate(saved.startDate);
     Object.assign(state,saved);state.dragData=null;
     migratePcdate();
@@ -601,6 +602,25 @@ function addPcdateField(){
   wrap.appendChild(inp);
 }
 
+/* 日付をYYYY-MM-DD形式（ハイフン）に正規化 */
+function normDate(d){
+  if(!d)return d;
+  /* YYYY/MM/DD → YYYY-MM-DD に変換 */
+  return String(d).replace(/\//g,'-');
+}
+function normalizeDates(saved){
+  if(!saved||!saved.properties)return saved;
+  saved.properties=saved.properties.map(p=>({
+    ...p,
+    pcdate:normDate(p.pcdate),
+    pcdates:(p.pcdates||[]).map(normDate),
+    dodai:normDate(p.dodai),
+    joto:normDate(p.joto),
+    finalCheck:normDate(p.finalCheck),
+  }));
+  return saved;
+}
+
 /* 旧pcdate→pcdates互換変換（loadData後に実行） */
 function migratePcdate(){
   state.properties.forEach(p=>{
@@ -680,7 +700,8 @@ function saveData(){
 function loadData(){
   try{
     const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return;
-    const saved=JSON.parse(raw);
+    let saved=JSON.parse(raw);
+    saved=normalizeDates(saved);
     if(saved.startDate)saved.startDate=toDate(saved.startDate);
     Object.assign(state,saved);state.dragData=null;
   }catch(e){console.warn('load failed',e)}
@@ -730,7 +751,8 @@ function importJSON(e){
   const reader=new FileReader();
   reader.onload=function(ev){
     try{
-      const saved=JSON.parse(ev.target.result);
+      let saved=JSON.parse(ev.target.result);
+      saved=normalizeDates(saved);
       if(saved.startDate)saved.startDate=toDate(saved.startDate);
       Object.assign(state,saved);state.dragData=null;
       renderTable();saveData();alert('インポートしました');
@@ -831,7 +853,30 @@ function renderTable(){
     html+='<tbody><tr><td colspan="'+(dates.length+2)+'" style="padding:24px;text-align:center;color:#aaa">物件がありません。「＋ 新規物件」ボタンで追加してください。</td></tr></tbody>';
   }
 
+  /* 表示期間内に予定がある物件のみ表示 */
+  const _pStart=dates[0].getTime();
+  const _pEnd=dates[dates.length-1].getTime();
+  function hasEventInPeriod(prop){
+    /* PC着日 */
+    const pcs=(prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean);
+    if(pcs.some(d=>{const t=toDate(d);return t&&t.getTime()>=_pStart&&t.getTime()<=_pEnd;})) return true;
+    /* 土台敷き */
+    if(prop.dodai){const t=toDate(prop.dodai);if(t&&t.getTime()>=_pStart&&t.getTime()<=_pEnd)return true;}
+    /* 上棟 */
+    if(prop.joto){const t=toDate(prop.joto);if(t&&t.getTime()>=_pStart&&t.getTime()<=_pEnd)return true;}
+    /* セル入力（koudo/am1〜pm2）*/
+    const rowKeys=['koudo','am1','am2','pm1','pm2'];
+    for(const d of dates){
+      const ds=isoDate(d);
+      for(const rk of rowKeys){
+        if(state.cellTexts[`${prop.id}_${ds}_${rk}`]) return true;
+      }
+    }
+    return false;
+  }
+
   for(const prop of state.properties){
+    if(!hasEventInPeriod(prop)) continue;
     /* pcdates配列から最も早い日を取得 */
     const _allPc=(prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean).sort();
     const _earliestPc=_allPc[0]||'';
