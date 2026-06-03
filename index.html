@@ -862,7 +862,30 @@ function renderTable(){
     html+='<tbody><tr><td colspan="'+(dates.length+2)+'" style="padding:24px;text-align:center;color:#aaa">物件がありません。「＋ 新規物件」ボタンで追加してください。</td></tr></tbody>';
   }
 
+  /* 表示期間内に予定がある物件のみ表示 */
+  const _pStart=dates[0].getTime();
+  const _pEnd=dates[dates.length-1].getTime();
+  function hasEventInPeriod(prop){
+    /* PC着日 */
+    const pcs=(prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean);
+    if(pcs.some(d=>{const t=toDate(d);return t&&t.getTime()>=_pStart&&t.getTime()<=_pEnd;})) return true;
+    /* 土台敷き */
+    if(prop.dodai){const t=toDate(prop.dodai);if(t&&t.getTime()>=_pStart&&t.getTime()<=_pEnd)return true;}
+    /* 上棟 */
+    if(prop.joto){const t=toDate(prop.joto);if(t&&t.getTime()>=_pStart&&t.getTime()<=_pEnd)return true;}
+    /* セル入力（koudo/am1〜pm2）*/
+    const rowKeys=['koudo','am1','am2','pm1','pm2'];
+    for(const d of dates){
+      const ds=isoDate(d);
+      for(const rk of rowKeys){
+        if(state.cellTexts[`${prop.id}_${ds}_${rk}`]) return true;
+      }
+    }
+    return false;
+  }
+
   for(const prop of state.properties){
+    if(!hasEventInPeriod(prop)) continue;
     /* pcdates配列から最も早い日を取得 */
     const _allPc=(prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean).sort();
     const _earliestPc=_allPc[0]||'';
