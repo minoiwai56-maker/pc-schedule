@@ -7,6 +7,10 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+/* テキスト選択を無効化（D&D操作のため） */
+body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
+/* 入力フィールドは選択可能のまま */
+input,textarea,select{-webkit-user-select:text;-moz-user-select:text;user-select:text}
 body{font-family:'Noto Sans JP','Meiryo',sans-serif;font-size:12px;background:#eef1f5;color:#222;min-height:100vh}
 .app-header{background:#6a9fc0;color:#fff;padding:8px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;flex-wrap:wrap}
 .app-header h1{font-size:16px;font-weight:700;letter-spacing:.05em;white-space:nowrap}
