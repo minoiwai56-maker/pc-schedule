@@ -1339,9 +1339,8 @@ function onCellClick(e,cellKey){
           cProp.pcdates=_pcs.sort();
           cProp.pcdate=cProp.pcdates[0]||'';
         }
-        /* 削除の場合（空）→ 対応フィールドをクリア */
-        if(val===''){
-          /* どのフィールドに対応するか既存バッジで判断 */
+        /* 削除の場合（空）→ koudo行のみバッジフィールドをクリア */
+        if(val===''&&parts[2]==='koudo'){
           if(cProp.pcdate===cDate) cProp.pcdate='';
           if(cProp.dodai===cDate) cProp.dodai='';
           if(cProp.joto===cDate) cProp.joto='';
