@@ -512,18 +512,14 @@ function listenFirebase(){
   if(_fbListening)return;
   _fbListening=true;
   DB_REF.on("value",snapshot=>{
-    let saved=snapshot.val();
+    const saved=snapshot.val();
     if(!saved)return;
-    const normalized=normalizeDates(JSON.parse(JSON.stringify(saved)));
-    /* 正規化でデータが変わった場合はFirebaseに書き戻す */
-    if(JSON.stringify(normalized.properties)!==JSON.stringify(saved.properties)){
-      DB_REF.set(normalized);
-    }
     /* startDate・weeksは各端末独自の表示設定なので上書きしない */
     const _keepStart=state.startDate;
     const _keepWeeks=state.weeks;
-    Object.assign(state,normalized);
-    state.startDate=_keepStart;
+    Object.assign(state,saved);
+    if(saved.startDate)state.startDate=toDate(saved.startDate);
+    else state.startDate=_keepStart;
     state.weeks=_keepWeeks;
     state.dragData=null;
     migratePcdate();
