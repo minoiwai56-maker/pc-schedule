@@ -1599,8 +1599,19 @@ function cycleStatus(propId){
 
 function copyFactoryHTML(){
   const area=document.getElementById('factoryTableArea');
-  const html=area.innerHTML;
   const msg=document.getElementById('htmlCopiedMsg');
+  /* Gmail貼付け用にmarginを除去したクリーンなHTMLを生成 */
+  const clone=area.cloneNode(true);
+  /* 外側divのmargin-bottomを除去 */
+  clone.querySelectorAll('div[style]').forEach(el=>{
+    el.style.marginBottom='4px';
+    el.style.marginTop='0';
+  });
+  /* tr/tdの余白を詰める */
+  clone.querySelectorAll('td,th').forEach(el=>{
+    el.style.padding='3px 6px';
+  });
+  const html='<meta charset="UTF-8">'+clone.innerHTML;
   /* Clipboard API（HTML対応）*/
   if(navigator.clipboard&&window.ClipboardItem){
     const blob=new Blob([html],{type:'text/html'});
