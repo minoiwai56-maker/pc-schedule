@@ -220,7 +220,6 @@ body.view-mode .view-badge{display:inline-flex!important}
     <span class="autosave-indicator" id="autoSaveInd">✓ 自動保存</span>
     <span class="header-time" id="headerTime"></span>
     <button class="btn btn-green edit-only" onclick="openAddModal()">＋ 新規物件</button>
-    <button class="btn btn-teal edit-only" onclick="saveData()">💾 保存</button>
     <button class="btn btn-purple edit-only" onclick="exportJSON()">⬇ エクスポート</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
     <button class="btn btn-teal edit-only" onclick="openFactoryModal()">🏭 工場別一覧</button>
@@ -360,6 +359,23 @@ body.view-mode .view-badge{display:inline-flex!important}
           onkeydown="if(event.key==='Enter'){addFactory();event.preventDefault()}">
         <button class="btn btn-blue" onclick="addFactory()">＋</button>
       </div>
+    </div>
+    <div class="settings-section">
+      <h3>自動削除</h3>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+        <label style="font-size:12px">PC着日から</label>
+        <select id="autoDeleteWeeksSelect" onchange="saveAutoDeleteWeeks()" style="border:1px solid #ccc;border-radius:4px;padding:3px 6px;font-size:12px;font-family:inherit">
+          <option value="1">1週間</option>
+          <option value="2">2週間</option>
+          <option value="3">3週間</option>
+          <option value="4">4週間</option>
+          <option value="6">6週間</option>
+          <option value="8">8週間</option>
+          <option value="12">12週間</option>
+        </select>
+        <label style="font-size:12px">経過した物件を自動削除</label>
+      </div>
+      <div style="font-size:10px;color:#888;margin-top:6px">アプリ起動時に自動チェックします。削除前に確認ダイアログが表示されます。</div>
     </div>
     <div class="settings-section">
       <h3>バックアップ</h3>
@@ -692,7 +708,7 @@ let state={
   salesStaff:['社長','専務','高尾','川口','泉(大)','篠原','勝原','泉(悟)'],
   pcStaff:['安松','泉'],
   pcFactories:['中国木材','朝間PC'],
-  webhookUrl:'',dragData:null,cellTexts:{}
+  webhookUrl:'',dragData:null,cellTexts:{},autoDeleteWeeks:3
 };
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 
@@ -1477,6 +1493,43 @@ function saveProperty(){
 }
 
 /* ===== 設定 ===== */
+/* ===== 自動削除 ===== */
+function saveAutoDeleteWeeks(){
+  const sel=document.getElementById('autoDeleteWeeksSelect');
+  state.autoDeleteWeeks=parseInt(sel.value)||3;
+  scheduleAutoSave();
+}
+
+function checkAutoDelete(){
+  if(IS_VIEW_MODE)return;
+  const weeks=state.autoDeleteWeeks||3;
+  const cutoff=new Date(TODAY);
+  cutoff.setDate(cutoff.getDate()-weeks*7);
+  const cutoffStr=isoDate(cutoff);
+  /* 最終PC着日がcutoff以前の物件を収集 */
+  const toDelete=state.properties.filter(p=>{
+    const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean).sort();
+    if(pcs.length===0)return false; /* PC着未設定は削除しない */
+    const latest=pcs[pcs.length-1];
+    return latest<=cutoffStr;
+  });
+  if(toDelete.length===0)return;
+  const names=toDelete.map(p=>p.name||'（名称未設定）').join('、');
+  if(confirm(`以下の${toDelete.length}件はPC着日から${weeks}週間以上経過しています。\n\n${names}\n\n削除しますか？`)){
+    const delIds=new Set(toDelete.map(p=>p.id));
+    state.properties=state.properties.filter(p=>!delIds.has(p.id));
+    /* 削除した物件のcellTextsも削除 */
+    delIds.forEach(id=>{
+      Object.keys(state.cellTexts).forEach(k=>{
+        if(k.startsWith(id+'_'))delete state.cellTexts[k];
+      });
+    });
+    renderTable();
+    scheduleAutoSave();
+    showToast(`${toDelete.length}件の物件を削除しました`);
+  }
+}
+
 /* ===== PC工場マスタ ===== */
 function populateFactorySelect(){
   const sel=document.getElementById('f_pcFactory');
@@ -1659,6 +1712,8 @@ function printFactory(){
 function openSettings(){
 
   renderMakerList();renderStaffLists();renderFactoryList();
+  const sel=document.getElementById('autoDeleteWeeksSelect');
+  if(sel) sel.value=String(state.autoDeleteWeeks||3);
   const wh=document.getElementById('webhookUrl');if(wh)wh.value=state.webhookUrl||'';
   document.getElementById('settingsModal').style.display='flex';
 }
@@ -1814,6 +1869,8 @@ async function init(){
   setWeeks(state.weeks||3);
   setInterval(updateTime,30000);
   fetchHolidays();
+  /* 起動時に自動削除チェック（編集モードのみ）*/
+  if(!IS_VIEW_MODE) setTimeout(checkAutoDelete,2000);
 }
 init();
 </script>
