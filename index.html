@@ -965,7 +965,7 @@ function renderTable(){
         const isSun=d.getDay()===0,isToday=ds===isoDate(TODAY);
         const isHolC=!isSun&&isHoliday(d);
         const events=getEventsOnDate(prop,ds,row.key);
-        const bg=(isSun||isHolC)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isToday?'background:#fff9d6':'';
+        const bg=(isSun||isHolC)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isSat?(isToday?'background:#fff9d6':'background:#f0f0f0'):isToday?'background:#fff9d6':'';
         const cellKey=`${prop.id}_${ds}_${row.key}`;
         const cellTxt=state.cellTexts[cellKey]||'';
         html+=`<td class="schedule-cell${isSun?' col-sun':''}" style="${bg?bg+';':''}" data-propid="${prop.id}" data-date="${ds}" data-rowkey="${row.key}" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="onCellClick(event,'${cellKey}')">`;
