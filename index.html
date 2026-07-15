@@ -362,6 +362,17 @@ body.view-mode .view-badge{display:inline-flex!important}
       </div>
     </div>
     <div class="settings-section">
+      <h3>長期休暇マスタ</h3>
+      <div id="holidayList" style="margin-bottom:8px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:4px;align-items:center">
+        <input class="small-input" id="newHolidayName" placeholder="休暇名（例：盆休み）">
+        <input type="date" class="small-input" id="newHolidayStart">
+        <input type="date" class="small-input" id="newHolidayEnd">
+        <button class="btn btn-blue" onclick="addHoliday()">＋</button>
+      </div>
+      <div style="font-size:10px;color:#888;margin-top:4px">開始日〜終了日の列が薄緑で表示されます</div>
+    </div>
+    <div class="settings-section">
       <h3>自動削除</h3>
       <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
         <label style="font-size:12px">PC着日から</label>
@@ -709,7 +720,9 @@ let state={
   salesStaff:['社長','専務','高尾','川口','泉(大)','篠原','勝原','泉(悟)'],
   pcStaff:['安松','泉'],
   pcFactories:['中国木材','朝間PC'],
-  webhookUrl:'',dragData:null,cellTexts:{},autoDeleteWeeks:3
+  webhookUrl:'',dragData:null,cellTexts:{},autoDeleteWeeks:3,
+  holidays:[],
+  rentalTexts:{}
 };
 const TODAY=new Date();TODAY.setHours(0,0,0,0);
 
@@ -833,6 +846,7 @@ function renderTable(){
     if(isSun||isHol)bg='#f5c0cb';
     else if(isToday)bg='#ffe070';
     else if(isSat)bg='#c8dff0';
+    else if(isLongHoliday(d))bg='#c8e6c9';
     else bg='#d5e8f4';
     const holTip=isHol?` title="${holidayName(d)}"`:'' ;
     const colCls=isSun?' col-sun':isSat?' col-sat':'';
@@ -861,8 +875,15 @@ function renderTable(){
     for(const d of dates){
       const isSun=d.getDay()===0,isToday=isoDate(d)===isoDate(TODAY);
       const isHolR=!isSun&&isHoliday(d);
-      const bg=(isSun||isHolR)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isToday?'background:#fff9d6':'background:#f0f8fd';
-      html+=`<td class="rental-cell${isSun?' col-sun':''}" style="${bg}"></td>`;
+      const isHolLD=isLongHoliday(d);
+      const bgR=(isSun||isHolR)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isHolLD?'background:#e8f5e9':isToday?'background:#fff9d6':'background:#f0f8fd';
+      const rKey=`${ri}_${isoDate(d)}`;
+      const rTxt=state.rentalTexts[rKey]||'';
+      const rFs=rTxt?calcCellFs(rTxt,38):9;
+      const rCtJson=rTxt?JSON.stringify({type:'celltext',key:rKey,label:rTxt,propId:'rental'}).replace(/"/g,'&quot;'):'';
+      html+=`<td class="rental-cell${isSun?' col-sun':''}" style="${bgR}" onclick="onRentalCellClick(event,'${rKey}')" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onRentalDrop(event,'${rKey}')">`;
+      if(rTxt) html+=`<span class="cell-text" draggable="true" ondragstart="onRentalTextDragStart(event,${rCtJson})" style="font-size:${rFs}px">${esc(rTxt)}</span>`;
+      html+='</td>';
     }
     html+='</tr>';
   }
@@ -965,7 +986,8 @@ function renderTable(){
         const isSun=d.getDay()===0,isSat=d.getDay()===6,isToday=ds===isoDate(TODAY);
         const isHolC=!isSun&&isHoliday(d);
         const events=getEventsOnDate(prop,ds,row.key);
-        const bg=(isSun||isHolC)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isSat?(isToday?'background:#fff9d6':'background:#f0f0f0'):isToday?'background:#fff9d6':'';
+        const isHolLD2=isLongHoliday(d);
+        const bg=(isSun||isHolC)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isSat?(isToday?'background:#fff9d6':'background:#f0f0f0'):isHolLD2?'background:#e8f5e9':isToday?'background:#fff9d6':'';
         const cellKey=`${prop.id}_${ds}_${row.key}`;
         const cellTxt=state.cellTexts[cellKey]||'';
         html+=`<td class="schedule-cell${isSun?' col-sun':''}" style="${bg?bg+';':''}" data-propid="${prop.id}" data-date="${ds}" data-rowkey="${row.key}" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="onCellClick(event,'${cellKey}')">`;
@@ -1494,6 +1516,94 @@ function saveProperty(){
 }
 
 /* ===== 設定 ===== */
+/* ===== 長期休暇マスタ管理 ===== */
+function renderHolidayList(){
+  const el=document.getElementById("holidayList");
+  if(!el)return;
+  const list=state.holidays||[];
+  if(list.length===0){el.innerHTML='<div style="font-size:11px;color:#aaa">登録なし</div>';return;}
+  el.innerHTML=list.map((h,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px">
+      <span style="background:#c8e6c9;padding:1px 6px;border-radius:3px;font-weight:500">${esc(h.name)}</span>
+      <span>${h.start} 〜 ${h.end}</span>
+      <button class="btn btn-red" style="padding:1px 7px;font-size:10px" onclick="removeHoliday(${i})">削除</button>
+    </div>`).join("");
+}
+function addHoliday(){
+  const name=document.getElementById("newHolidayName").value.trim();
+  const start=document.getElementById("newHolidayStart").value;
+  const end=document.getElementById("newHolidayEnd").value;
+  if(!name||!start||!end){showToast("休暇名・開始日・終了日を入力してください");return;}
+  if(start>end){showToast("開始日は終了日より前にしてください");return;}
+  if(!state.holidays)state.holidays=[];
+  state.holidays.push({name,start,end});
+  document.getElementById("newHolidayName").value="";
+  document.getElementById("newHolidayStart").value="";
+  document.getElementById("newHolidayEnd").value="";
+  renderHolidayList();scheduleAutoSave();renderTable();
+}
+function removeHoliday(i){
+  state.holidays.splice(i,1);
+  renderHolidayList();scheduleAutoSave();renderTable();
+}
+
+/* ===== 長期休暇判定 ===== */
+function isLongHoliday(d){
+  const ds=isoDate(d);
+  return (state.holidays||[]).some(h=>h.start&&h.end&&ds>=h.start&&ds<=h.end);
+}
+
+/* ===== レンタカーセル入力 ===== */
+function onRentalCellClick(e,rKey){
+  if(IS_VIEW_MODE)return;
+  if(e.target.closest(".cell-text")||e.target.closest(".cell-input-wrap"))return;
+  e.stopPropagation();
+  const td=e.currentTarget;
+  if(td.querySelector(".cell-input-wrap"))return;
+  const currentVal=state.rentalTexts[rKey]||"";
+  const wrap=document.createElement("div");
+  wrap.className="cell-input-wrap no-print";
+  const inp=document.createElement("input");
+  inp.type="text";inp.value=currentVal;inp.maxLength=20;inp.placeholder="入力…";
+  wrap.appendChild(inp);
+  td.style.position="relative";
+  td.appendChild(wrap);
+  inp.focus();inp.select();
+  function commit(){
+    const val=inp.value.trim();
+    if(val==="")delete state.rentalTexts[rKey];
+    else state.rentalTexts[rKey]=val;
+    wrap.remove();
+    scheduleAutoSave();renderTable();
+  }
+  function cancel(){wrap.remove();}
+  inp.addEventListener("keydown",function(ev){
+    if(ev.key==="Enter"){ev.preventDefault();commit();}
+    else if(ev.key==="Escape"){ev.preventDefault();cancel();}
+  });
+  inp.addEventListener("blur",commit);
+}
+
+function onRentalTextDragStart(e,ev){
+  state.dragData={...ev,isRentalText:true};
+  setTimeout(()=>e.target.classList.add("dragging"),0);
+  e.dataTransfer.effectAllowed="move";
+}
+
+function onRentalDrop(e,toKey){
+  e.preventDefault();
+  e.currentTarget.classList.remove("drag-over");
+  const ev=state.dragData;
+  if(!ev||!ev.isRentalText)return;
+  if(ev.key!==toKey){
+    delete state.rentalTexts[ev.key];
+    state.rentalTexts[toKey]=ev.label;
+  }
+  state.dragData=null;
+  document.querySelectorAll(".dragging").forEach(el=>el.classList.remove("dragging"));
+  renderTable();scheduleAutoSave();
+}
+
 /* ===== 自動削除 ===== */
 function saveAutoDeleteWeeks(){
   const sel=document.getElementById('autoDeleteWeeksSelect');
@@ -1712,7 +1822,7 @@ function printFactory(){
 
 function openSettings(){
 
-  renderMakerList();renderStaffLists();renderFactoryList();
+  renderMakerList();renderStaffLists();renderFactoryList();renderHolidayList();
   const sel=document.getElementById('autoDeleteWeeksSelect');
   if(sel) sel.value=String(state.autoDeleteWeeks||3);
   const wh=document.getElementById('webhookUrl');if(wh)wh.value=state.webhookUrl||'';
