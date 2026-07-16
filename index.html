@@ -528,11 +528,15 @@ const DB_REF=db.ref("schedule");
 let _fbListening=false;
 
 /* Firebaseにデータを保存 */
+let _fbSaving=false;
 function saveToFirebase(){
   if(IS_VIEW_MODE)return;
   const s={...state};delete s.dragData;
   s.startDate=s.startDate?isoDate(s.startDate):null;
-  DB_REF.set(s).then(()=>showAutoSave()).catch(e=>console.warn("Firebase save error:",e));
+  _fbSaving=true;
+  DB_REF.set(s)
+    .then(()=>{showAutoSave();setTimeout(()=>_fbSaving=false,1000);})
+    .catch(e=>{console.warn("Firebase save error:",e);_fbSaving=false;});
 }
 
 /* Firebaseからデータをリアルタイム受信 */
@@ -540,6 +544,7 @@ function listenFirebase(){
   if(_fbListening)return;
   _fbListening=true;
   DB_REF.on("value",snapshot=>{
+    if(_fbSaving)return; /* 自分が保存中は無視 */
     const saved=snapshot.val();
     if(!saved)return;
     /* startDate・weeksは各端末独自の表示設定なので上書きしない */
