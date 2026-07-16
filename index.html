@@ -533,10 +533,20 @@ function saveToFirebase(){
   if(IS_VIEW_MODE)return;
   const s={...state};delete s.dragData;
   s.startDate=s.startDate?isoDate(s.startDate):null;
+  /* リスナーを一時停止してから保存 */
   _fbSaving=true;
+  DB_REF.off("value");
   DB_REF.set(s)
-    .then(()=>{showAutoSave();setTimeout(()=>_fbSaving=false,1000);})
-    .catch(e=>{console.warn("Firebase save error:",e);_fbSaving=false;});
+    .then(()=>{
+      showAutoSave();
+      /* 保存完了後2秒待ってからリスナー再開 */
+      setTimeout(()=>{
+        _fbSaving=false;
+        _fbListening=false;
+        listenFirebase();
+      },2000);
+    })
+    .catch(e=>{console.warn("Firebase save error:",e);_fbSaving=false;_fbListening=false;listenFirebase();});
 }
 
 /* Firebaseからデータをリアルタイム受信 */
