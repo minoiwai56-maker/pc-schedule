@@ -1432,7 +1432,8 @@ function sortByPcDate(){
     if(a.joto)return -1;if(b.joto)return 1;
     return 0;
   });
-  renderTable();scheduleAutoSave();
+  renderTable();
+  saveData();
 }
 
 /* ===== 物件削除 ===== */
@@ -1512,7 +1513,9 @@ function saveProperty(){
   });
   if(_np.dodai) state.cellTexts[`${_np.id}_${_np.dodai}_koudo`]='土台敷き';
   if(_np.joto)  state.cellTexts[`${_np.id}_${_np.joto}_koudo`]='上棟';
-  closeModal('addModal');renderTable();scheduleAutoSave();
+  /* 新規物件追加後に自動整列 */
+  sortByPcDate();
+  closeModal('addModal');
 }
 
 /* ===== 設定 ===== */
