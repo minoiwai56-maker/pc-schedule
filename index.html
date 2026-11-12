@@ -11,202 +11,249 @@
 body{-webkit-user-select:none;-moz-user-select:none;user-select:none}
 /* 入力フィールドは選択可能のまま */
 input,textarea,select{-webkit-user-select:text;-moz-user-select:text;user-select:text}
-body{font-family:'Noto Sans JP','Meiryo',sans-serif;font-size:12px;background:#eef1f5;color:#222;min-height:100vh}
-.app-header{background:#6a9fc0;color:#fff;padding:8px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;flex-wrap:wrap}
-.app-header h1{font-size:16px;font-weight:700;letter-spacing:.05em;white-space:nowrap}
-.header-right{margin-left:auto;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
-.header-time{font-size:11px;opacity:.9;white-space:nowrap}
-.autosave-indicator{font-size:10px;color:#b6ffdf;opacity:0;transition:opacity .6s;white-space:nowrap}
-.autosave-indicator.visible{opacity:1}
-button.btn{border:none;border-radius:4px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:3px;transition:opacity .15s;white-space:nowrap}
-.btn-green{background:#27ae60;color:#fff}.btn-blue{background:#2980b9;color:#fff}
-.btn-orange{background:#e67e22;color:#fff}.btn-gray{background:#7f8c8d;color:#fff}
-.btn-red{background:#c0392b;color:#fff}.btn-teal{background:#16a085;color:#fff}
-.btn-purple{background:#8e44ad;color:#fff}.btn-print{background:#546e7a;color:#fff}
-.btn-edit{background:#f39c12;color:#fff}
-button.btn:hover{opacity:.85}
-.toolbar{background:#fff;border-bottom:1px solid #ddd;padding:6px 16px;display:flex;align-items:center;gap:6px;position:sticky;top:41px;z-index:99;flex-wrap:wrap}
-.week-toggle{display:flex;gap:3px}
-.week-btn{border:1px solid #aaa;background:#fff;border-radius:4px;padding:3px 10px;font-size:11px;cursor:pointer;transition:all .15s;font-family:inherit;color:#333}
-.week-btn.active{background:#6a9fc0;color:#fff;border-color:#6a9fc0}
-.table-wrap{
-  overflow-x:auto;
-  overflow-y:auto;
-  padding:8px;
-  /* ヘッダー+ツールバー分を除いた残りの高さでスクロール */
-  max-height:calc(100vh - 120px);
+/* ===== 配色（メールクライアントのカレンダーと同じ系統） ===== */
+:root{
+  --bg:#ffffff;--hdr:#f0f0f0;--panel:#f7f7f8;--line:#d0d0d0;--grid:#ececee;
+  --tx:#1d1d1f;--tx2:#3a3a3a;--tx3:#636366;--acc:#007aff;--fill:#0071eb;--filh:#0063cf;
+  --red:#ff3b30;--redtx:#d70015;
+  --we:#f8f8f9;--sunbg:#fff2f1;--todaybg:#edf4ff;--long:#e7f6ea;
+  --inp:#ffffff;--inpl:#c8c8c8;--pbh:#d4d4d4;--hov:#f2f2f4;
+  --c-pc:#ff9500;--c-dodai:#af52de;--c-joto:#ff3b30;--c-memo:#8e8e93;
+  --info-w:260px;--label-w:36px;
 }
+html,body{height:100%}
+body{font-family:'Yu Gothic UI','Segoe UI','Noto Sans JP','Meiryo',sans-serif;font-size:12.5px;background:var(--bg);color:var(--tx);display:flex;flex-direction:column;overflow:hidden}
 
-/* ===== SCHEDULE TABLE ===== */
-table.schedule{border-collapse:collapse;font-size:11px;width:100%;background:#fff;table-layout:fixed;border:2px solid #555}
-table.schedule th,table.schedule td{border:1px solid #ccc;padding:1px 2px;white-space:nowrap;vertical-align:middle;overflow:hidden}
-table.schedule thead th,table.schedule thead td{position:sticky;z-index:11}
-/* ヘッダー行1（日付）: toolbarの下に固定 */
+/* ===== ヘッダー ===== */
+.app-header{background:var(--hdr);border-bottom:1px solid var(--line);padding:9px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:none;position:relative;z-index:100}
+.brand{display:flex;align-items:center;gap:8px;margin-right:4px}
+.app-header h1{font-size:14px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.nav{display:flex;align-items:center;gap:4px}
+.period{display:flex;align-items:baseline;gap:8px;margin:0 4px}
+.period-title{font-size:21px;font-weight:400;white-space:nowrap}
+.period-title b{font-weight:800}
+.period-sub{font-size:13px;color:var(--tx3);white-space:nowrap}
+.spacer{flex:1}
+.header-time{font-size:11.5px;color:var(--tx3);white-space:nowrap}
+.autosave-indicator{font-size:11.5px;color:#1e7e34;opacity:0;transition:opacity .6s;white-space:nowrap}
+.autosave-indicator.visible{opacity:1}
+.view-badge{display:none;align-items:center;height:22px;padding:0 10px;border-radius:11px;background:rgba(52,199,89,.18);color:#1b6b32;font-size:11.5px;font-weight:700;white-space:nowrap}
+
+/* ===== ボタン ===== */
+button.btn{height:28px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;border:1px solid var(--inpl);border-radius:6px;background:var(--inp);color:var(--tx);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap;transition:background .12s}
+button.btn:hover{background:var(--hov)}
+button.btn svg{flex:none}
+button.btn:focus-visible,.week-btn:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.btn-icon{width:28px;padding:0!important}
+.btn-primary,.btn-green,.btn-blue,.btn-teal{background:var(--fill)!important;border-color:var(--fill)!important;color:#fff!important;font-weight:600}
+.btn-primary:hover,.btn-green:hover,.btn-blue:hover,.btn-teal:hover{background:var(--filh)!important}
+.btn-red{background:var(--redtx)!important;border-color:var(--redtx)!important;color:#fff!important;font-weight:600}
+
+/* 表示期間の切り替え */
+.week-toggle{display:flex;border:1px solid var(--inpl);border-radius:7px;overflow:hidden;background:var(--inp)}
+.week-btn{border:0;background:transparent;color:var(--tx2);height:26px;padding:0 13px;font:inherit;font-size:12.5px;cursor:pointer}
+.week-btn+.week-btn{border-left:1px solid var(--inpl)}
+.week-btn.active{background:var(--pbh);color:var(--tx);font-weight:600}
+
+/* 凡例 */
+.legend{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:7px 16px;border-bottom:1px solid var(--grid);font-size:11.5px;color:var(--tx3);flex:none}
+.legend>span{display:inline-flex;align-items:center;gap:6px}
+.legend .cell-event,.legend .cell-text{font-size:10.5px;margin:0;cursor:default}
+.lg-sw{width:14px;height:12px;border-radius:3px;border:1px solid var(--line);display:inline-block}
+.lg-sep{width:1px;height:14px;background:var(--line)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+
+/* ===== 予定表 ===== */
+.table-wrap{flex:1;min-height:0;overflow:auto}
+.table-wrap::-webkit-scrollbar{width:10px;height:10px}
+.table-wrap::-webkit-scrollbar-thumb{background:rgba(99,99,102,.45);border-radius:5px;border:2px solid var(--bg)}
+.table-wrap::-webkit-scrollbar-track{background:transparent}
+table.schedule{border-collapse:separate;border-spacing:0;table-layout:fixed;width:100%;background:var(--bg);font-size:11px}
+table.schedule th,table.schedule td{border:0;border-right:1px solid var(--grid);border-bottom:1px solid var(--grid);padding:0;white-space:nowrap;vertical-align:middle;overflow:hidden;font-weight:400}
+table.schedule thead th,table.schedule thead td{position:sticky;z-index:11;background:var(--bg)}
 table.schedule thead tr:first-child th{top:0}
-/* ヘッダー行2（六曜）: 行1の高さ分下に固定（約28px）*/
-table.schedule thead tr:last-child td{top:26px}
-table.schedule thead th{border-top:2px solid #555;border-bottom:1px solid #ccc}
-table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
-/* 太線クラス */
-.border-top-thick{border-top:2px solid #555!important}
-.border-bottom-thick{border-bottom:2px solid #555!important}
-.border-left-thick{border-left:2px solid #555!important}
-.border-right-thick{border-right:2px solid #555!important}
-.border-week{border-left:2px solid #4a7fa8!important}
+table.schedule thead tr:last-child td{top:40px}
 
-/* 情報列・ラベル列 sticky */
-.col-info-th{width:240px;min-width:240px;position:sticky;left:0;top:0;z-index:15;background:#a8c8de;border-right:2px solid #888!important;border-bottom:2.5px solid #333!important}
-.col-rowlabel-th{width:28px;min-width:28px;position:sticky;left:240px;top:0;z-index:15;background:#a8c8de;border-right:2px solid #888!important}
-.prop-info-cell{width:240px;min-width:240px;max-width:240px;background:#fff;padding:2px 4px 2px 6px;border-right:3px solid #4a7fa8;position:sticky;left:0;z-index:10;overflow:hidden;background-color:#fff}
-.row-label{width:28px;min-width:28px;max-width:28px;background:#f0f4f7;font-size:9px;color:#555;text-align:center;position:sticky;left:240px;z-index:10}
+/* 左上の見出し */
+.col-info-th{left:0;z-index:15!important;text-align:left;vertical-align:bottom!important;padding:0 12px 6px!important;font-size:11.5px;color:var(--tx3);border-right:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important}
 
-/* 日曜列 */
-th.col-sun,td.col-sun{background:#fff0f4!important;width:22px!important;min-width:22px!important;max-width:22px!important;border-left:2px solid #b0b0b0!important}
-th.col-sat,td.col-sat{background:#eeeeee!important}
-th.col-sun{background:#f5c0cb!important}
+/* 日付の見出し */
+.hd{height:40px;text-align:center;border-bottom:0!important;padding-top:3px!important}
+.hd-dow{display:block;font-size:10.5px;line-height:13px;color:var(--tx3)}
+.hd-num{display:inline-grid;place-items:center;height:22px;min-width:22px;font-size:15px;font-weight:300;color:var(--tx)}
+.d-sun .hd-dow,.d-hol .hd-dow,.d-sun .hd-num,.d-hol .hd-num{color:var(--redtx)}
+.hd-num.hd-today{background:var(--red);color:#fff!important;border-radius:50%;width:22px;font-size:12.5px;font-weight:700}
+.hd-print{display:none}
+.hd-rk{height:18px;font-size:10px;color:var(--tx3);text-align:center;border-bottom:1px solid var(--line)!important}
 
-/* カレンダーヘッダー */
-.header-date{text-align:center;font-size:10px;line-height:1.4;padding:2px 1px;color:#222;white-space:nowrap}
-.rokuyo{font-size:9px;color:#777;display:block}
-.sep-row td{height:0;background:transparent;border:none;border-top:2.5px solid #333;border-bottom:0;padding:0}
-.schedule-cell{text-align:center;padding:1px 2px;position:relative;color:#222;overflow:hidden}
-.schedule-cell:hover:not(.col-sun){background:#eef5fb}
+/* 曜日・祝日・長期休暇・今日の色（後ろほど優先） */
+table.schedule .d-sat{background:var(--we)}
+table.schedule .d-long{background:var(--long)}
+table.schedule .d-sun,table.schedule .d-hol{background:var(--sunbg)}
+table.schedule .d-today{background:var(--todaybg)}
+table.schedule .d-sun{border-left:1px solid var(--line)}
 
-/* 物件概要セル内 */
-.prop-name{font-weight:700;color:#222;white-space:nowrap;overflow:hidden;line-height:1.2;padding:1px 3px;border-radius:2px}
-.prop-maker-line{color:#444;margin-top:0;line-height:1.2;display:flex;align-items:baseline;justify-content:space-between;gap:2px}
-.prop-meta{font-size:10px;color:#555;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.prop-dates{font-size:12px;color:#333;margin-top:0;line-height:1.5;display:flex;flex-wrap:wrap;gap:0 5px}
-.pc-arrival{font-weight:700;color:#d4600a;font-size:15px}
-.date-label{color:#888;font-size:9px}
-.prop-note{font-size:10px;color:#555;margin-top:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 行の高さ */
+tr.r-koudo>td{height:28px}
+tr.r-sub>td{height:20px}
+
+/* 物件概要 */
+.prop-info-cell{position:sticky;left:0;z-index:10;background:var(--bg);padding:5px 10px 5px 12px!important;border-right:1px solid var(--grid)!important;vertical-align:middle!important}
+.pi{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pi-row{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap}
+.prop-name{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;padding:1px 6px;border-radius:4px;line-height:1.35;color:var(--tx)}
+.pc-factory-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--tx2);flex:none}
+.pc-factory-empty{color:var(--tx3);border:1px dashed var(--inpl);border-radius:4px;padding:0 5px}
+.prop-delete-btn{border:0;background:transparent;color:var(--tx3);width:18px;height:18px;padding:0;border-radius:4px;cursor:pointer;display:grid;place-items:center;flex:none}
+.prop-delete-btn:hover{background:var(--hov);color:var(--redtx)}
+.prop-maker-line{display:flex;align-items:baseline;gap:6px;min-width:0;color:var(--tx2)}
+.pm-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-size{font-size:10.5px;color:var(--tx3);flex:none;white-space:nowrap}
+.prop-dates{display:flex;align-items:baseline;gap:10px;font-size:11px;color:var(--tx3);white-space:nowrap}
+.prop-dates b{color:var(--tx2);font-weight:600}
+.pc-arrival{font-size:15px;font-weight:700;color:#b35c00}
+.pc-extra{font-size:10.5px}
+.prop-staff{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--tx3);white-space:nowrap}
+.prop-staff b{color:var(--tx2);font-weight:600}
+.pc-pill{display:inline-flex;align-items:center;height:16px;padding:0 6px;border-radius:8px;font-weight:600}
+.prop-note{font-size:11px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prop-status-tag{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;border:0.5px solid;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .status-new{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7}
 .status-change{background:#fff3e0;color:#e65100;border-color:#ffb74d}
 .status-none{background:#f5f5f5;color:#bbb;border-color:#ddd}
-.prop-staff{font-size:10px;color:#555;margin-top:0}
-.prop-delete-btn{position:static;background:none;border:none;color:#ccc;cursor:pointer;font-size:11px;line-height:1;padding:0;flex-shrink:0}
-.prop-delete-btn:hover{color:#c0392b}
 
-/* 固定レンタカー行 */
-.rental-info-cell{width:240px;min-width:240px;max-width:240px;background:#e8f4fb;padding:3px 6px 3px 8px;border-right:3px solid #4a7fa8;position:sticky;left:0;z-index:10;font-weight:700;font-size:11px;color:#222}
-.rental-row-label{background:#d6eaf5;font-size:10px;color:#444;text-align:center;position:sticky;left:240px;z-index:10;width:28px;min-width:28px;max-width:28px}
-.rental-cell{background:#f0f8fd}
-.rental-sep td{height:3px;background:#c8d8e8;border-top:2.5px solid #333;border-bottom:2.5px solid #333;padding:0}
+/* 行ラベル（工程・AM1…） */
+.row-label,.rental-row-label{position:sticky;left:var(--info-w);z-index:10;background:var(--panel)!important;font-size:10.5px;color:var(--tx3);text-align:center;border-right:1px solid var(--line)!important}
+.rl-first{color:var(--tx2);font-weight:600!important}
+
+/* レンタカー・その他予定 */
+.rental-info-cell{position:sticky;left:0;z-index:10;background:var(--panel)!important;padding:8px 12px!important;border-right:1px solid var(--grid)!important;vertical-align:middle!important}
+.ri-title{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--tx)}
+.ri-hint{font-size:11px;color:var(--tx3);margin-top:3px}
+
+/* 区切り */
+.sep-row>td{height:0;padding:0!important;border:0!important;border-top:1px solid var(--line)!important}
+.rental-sep>td{height:34px;padding:0!important;border:0!important;border-top:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important;background:var(--bg)}
+.sec{position:sticky;left:16px;display:inline-flex;align-items:baseline;gap:10px}
+.sec b{font-size:13px}
+.sec span{font-size:11.5px;color:var(--tx3)}
+
+/* セル */
+.schedule-cell,.rental-cell{text-align:center;position:relative;overflow:visible!important;color:var(--tx)}
+.schedule-cell:hover,.rental-cell:hover{box-shadow:inset 0 0 0 1px rgba(0,122,255,.35)}
+
+/* 予定ラベル（PC着・土台敷き・上棟・メモ）：薄い色の面＋左の線、黒文字 */
+.cell-event,.cell-text{display:flex;align-items:center;justify-content:center;width:max-content;height:18px;margin:1px auto;padding:0 5px 0 7px;border-radius:4px;font-weight:600;white-space:nowrap;color:var(--tx);background:color-mix(in srgb,var(--c) 20%,#ffffff);box-shadow:inset 2.5px 0 0 var(--c);position:relative;z-index:5;cursor:grab;user-select:none}
+.cell-event:active,.cell-text:active{cursor:grabbing;opacity:.7}
+.event-pc{--c:var(--c-pc)}.event-dodai{--c:var(--c-dodai)}.event-joto{--c:var(--c-joto)}
+.cell-text{--c:var(--c-memo);font-weight:500}
+.cell-input-wrap{position:absolute;top:0;left:0;width:100%;height:100%;z-index:50;display:flex;align-items:center;justify-content:center}
+.cell-input-wrap input{width:96px;font-size:11px;font-family:inherit;border:1px solid var(--acc);border-radius:4px;padding:2px 5px;outline:none;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.dragging{opacity:.35}
+.drag-over{background:#dbe9ff!important;box-shadow:inset 0 0 0 2px var(--acc)!important}
 
 /* インライン編集 */
-.editable{cursor:pointer;border-radius:2px;transition:background .1s}
-.editable:hover{background:#fff8e1;outline:1px dashed #f39c12}
+.editable{cursor:pointer;border-radius:3px;transition:background .1s}
+.editable:hover{background:#fff4d6;outline:1px dashed #e0a100}
 .inline-edit-overlay{position:fixed;inset:0;z-index:500;background:transparent}
-.inline-edit-popup{position:fixed;z-index:501;background:#fff;border:1px solid #6a9fc0;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.18);padding:10px 12px;min-width:220px;max-width:320px}
-.inline-edit-popup label{font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px}
-.inline-edit-popup input,.inline-edit-popup select{width:100%;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit;outline:none;color:#222}
-.inline-edit-popup input:focus,.inline-edit-popup select:focus{border-color:#6a9fc0;box-shadow:0 0 0 2px rgba(106,159,192,.2)}
-.inline-edit-popup .popup-footer{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}
+.inline-edit-popup{position:fixed;z-index:501;background:var(--bg);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.2);padding:12px 14px;min-width:220px;max-width:320px}
+.inline-edit-popup label{font-size:11.5px;font-weight:600;color:var(--tx2);display:block;margin-bottom:6px}
+.inline-edit-popup input,.inline-edit-popup select{width:100%;border:1px solid var(--inpl);border-radius:6px;padding:5px 8px;font-size:12.5px;font-family:inherit;outline:none;color:var(--tx);background:var(--inp)}
+.inline-edit-popup input:focus,.inline-edit-popup select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,122,255,.15)}
+.inline-edit-popup .popup-footer{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
 
-/* イベントバッジ */
-.cell-event{border-radius:3px;font-size:9px;font-weight:700;color:#222;text-align:center;padding:0 1px;cursor:grab;user-select:none;display:block;white-space:nowrap;margin:1px auto;position:relative;z-index:5;overflow:visible}
-.cell-event:active{cursor:grabbing;opacity:.7}
-.event-pc{background:#fde8d0;border:1px solid #d4600a}.event-joto{background:#fdd9d5;border:1px solid #c0392b}.event-dodai{background:#eeddf5;border:1px solid #7d3c98}
-.cell-text{
-  display:block;font-size:9px;font-weight:600;color:#2e7d32;
-  background:#f1faf2;border-radius:2px;padding:0 1px;
-  border:1px solid #c8e6c9;
-  white-space:nowrap;overflow:visible;
-  cursor:pointer;margin:1px auto;text-align:center;
-  position:relative;z-index:5;
-}
-.cell-input-wrap{
-  position:absolute;top:0;left:0;width:100%;height:100%;
-  z-index:50;display:flex;align-items:center;justify-content:center;
-}
-.cell-input-wrap input{
-  width:90px;font-size:10px;font-family:inherit;
-  border:1px solid #6a9fc0;border-radius:3px;
-  padding:1px 3px;outline:none;background:#fff;
-  box-shadow:0 2px 8px rgba(0,0,0,.18);
-}
-.dragging{opacity:.35}
-.drag-over{background:#d6eaf8!important;outline:2px dashed #6a9fc0}
-
-/* ===== MODALS ===== */
-.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}
-.modal{background:#fff;border-radius:8px;padding:20px;width:590px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.2)}
-.modal h2{font-size:15px;font-weight:700;margin-bottom:14px;color:#333;border-bottom:2px solid #6a9fc0;padding-bottom:6px}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
-.form-group{display:flex;flex-direction:column;gap:3px}
-.form-group label{font-size:11px;font-weight:600;color:#555}
-.form-group input,.form-group select{border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit;outline:none;width:100%;color:#222}
-.form-group input:focus,.form-group select:focus{border-color:#6a9fc0;box-shadow:0 0 0 2px rgba(106,159,192,.2)}
+/* ===== ダイアログ ===== */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.38);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:32px 20px;overflow-y:auto}
+.modal{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:0 20px 18px;width:590px;max-width:95vw;box-shadow:0 18px 50px rgba(0,0,0,.25);overflow:hidden}
+.modal h2{font-size:15px;font-weight:700;margin:0 -20px 16px;padding:13px 20px;background:var(--hdr);border-bottom:1px solid var(--line);color:var(--tx)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:11.5px;font-weight:600;color:var(--tx2)}
+.form-group input,.form-group select{border:1px solid var(--inpl);border-radius:6px;padding:6px 8px;font-size:12.5px;font-family:inherit;outline:none;width:100%;color:var(--tx);background:var(--inp)}
+.form-group input:focus,.form-group select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(0,122,255,.15)}
 .form-group.full{grid-column:1/-1}
-.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid #eee}
-.settings-section{margin-bottom:14px}
-.settings-section h3{font-size:12px;font-weight:700;color:#333;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #d5e3ef}
-.maker-list{border:1px solid #ddd;border-radius:4px;max-height:200px;overflow-y:auto}
-.maker-item{padding:6px 8px;border-bottom:1px solid #f0f0f0}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--grid)}
+.settings-section{margin-bottom:16px}
+.settings-section h3{font-size:12.5px;font-weight:700;color:var(--tx);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--grid)}
+.maker-list{border:1px solid var(--line);border-radius:8px;max-height:200px;overflow-y:auto}
+.maker-item{padding:6px 10px;border-bottom:1px solid var(--grid)}
 .maker-item:last-child{border-bottom:none}
 .maker-view{display:flex;align-items:flex-start;gap:8px}
-.maker-name-disp{font-weight:700;font-size:11px;flex:1;color:#222}
-.maker-details{font-size:10px;color:#555;flex:2}
-.tag{display:inline-block;background:#ddeef8;color:#2c6e99;border-radius:3px;padding:1px 5px;font-size:10px;margin:1px}
+.maker-name-disp{font-weight:700;font-size:11.5px;flex:1;color:var(--tx)}
+.maker-details{font-size:10.5px;color:var(--tx3);flex:2}
+.tag{display:inline-block;background:#e8f1fd;color:#0058b9;border-radius:4px;padding:1px 6px;font-size:10.5px;margin:1px}
 .staff-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;min-height:24px}
-.staff-tag{background:#ddeef8;color:#2c6e99;border-radius:3px;padding:2px 6px;font-size:10px;display:flex;align-items:center;gap:3px}
-.staff-tag button{background:none;border:none;cursor:pointer;color:#c0392b;font-size:10px;padding:0;line-height:1}
-.small-input{border:1px solid #ccc;border-radius:4px;padding:3px 6px;font-size:11px;font-family:inherit;outline:none;color:#222}
-.small-input:focus{border-color:#6a9fc0}
+.staff-tag{background:#e8f1fd;color:#0058b9;border-radius:4px;padding:2px 7px;font-size:11px;display:flex;align-items:center;gap:4px}
+.staff-tag button{background:none;border:none;cursor:pointer;color:var(--redtx);font-size:11px;padding:0;line-height:1}
+.small-input{border:1px solid var(--inpl);border-radius:6px;padding:4px 7px;font-size:12px;font-family:inherit;outline:none;color:var(--tx);background:var(--inp)}
+.small-input:focus{border-color:var(--acc)}
 .discord-preview{background:#36393f;color:#dcddde;border-radius:6px;padding:12px;font-size:12px;margin:10px 0;line-height:1.6}
 .discord-channel{color:#7289da;font-weight:700;font-size:11px;margin-bottom:6px}
-.notice{font-size:11px;color:#888;background:#f8f9fa;border-radius:4px;padding:6px 10px;margin-top:6px}
+.notice{font-size:11px;color:var(--tx3);background:var(--panel);border-radius:6px;padding:6px 10px;margin-top:6px}
 
-/* ===== PRINT ===== */
+/* ===== 印刷（A3横） ===== */
 @media print{
   @page{size:A3 landscape;margin:10mm 8mm}
-  body{background:#fff;font-size:10px;color:#000}
-  .app-header,.toolbar,.no-print{display:none!important}
-  .table-wrap{overflow:visible;padding:0}
-  table.schedule{font-size:9px;width:100%}
-  .col-info-th,.prop-info-cell,.rental-info-cell{position:static!important;width:175px!important;min-width:175px!important;max-width:175px!important}
-  .col-rowlabel-th,.row-label,.rental-row-label{position:static!important;width:20px!important;min-width:20px!important}
-  .prop-name{font-size:13px!important;line-height:1.2!important}
-  .pc-arrival{font-size:12px!important}
-  .prop-maker-line{font-size:11px!important;margin-top:0!important;line-height:1.3!important}
-  .prop-meta,.prop-note,.prop-dates,.prop-staff{font-size:8px!important;margin-top:0!important;line-height:1.3!important}
-  .prop-info-cell{padding:1px 3px!important}
-  .sep-row td{height:0!important;border-top:2px solid #333!important;border-bottom:none!important;padding:0!important;background:transparent!important}
-  table.schedule th,table.schedule td{padding:0 1px!important}
-  .rental-sep td{height:3px!important;background:#b8d8ec!important;border-top:2px solid #333!important;border-bottom:2px solid #333!important;padding:0!important}
-  th.header-date{font-size:9px;padding:1px}.rokuyo{font-size:8px}
-  /* A3横印刷時: table-layout:fixed維持、列幅をCSSで固定 */
-  table.schedule{table-layout:fixed!important;width:100%!important}
-  /* 情報列・ラベル列は固定 */
-  table.schedule col:nth-child(1){width:175px!important}
-  table.schedule col:nth-child(2){width:20px!important}
-  /* 日曜列(3の倍数+3番目など)は14px: col-sunクラスで制御済み */
-    /* 平日列: 残り幅を均等に（情報列・日曜列固定後の残りを自動分配）*/
-  table.schedule col:nth-child(n+3){width:auto!important}
-  table.schedule thead tr:last-child td{border-bottom:2.5px solid #333!important}
-  .cell-event{font-size:9px;padding:1px 2px;color:#222!important}
-  th.col-sun,td.col-sun{width:14px!important;min-width:14px!important;max-width:14px!important}
+  html,body{height:auto;overflow:visible;display:block;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .app-header,.legend,.no-print,.toast{display:none!important}
+  .table-wrap{overflow:visible!important;flex:none}
+  .print-title{display:flex!important;align-items:flex-end;gap:18px;margin-bottom:8px;font-size:12px;color:#000}
+  .print-title b{font-size:20px;letter-spacing:.04em}
+  .print-title .cell-event{font-size:10px;margin:0}
+  .pt-legend{display:inline-flex;align-items:center;gap:10px;margin-left:auto;font-size:10.5px;color:#333}
+  .pt-legend .lg-sw{border-color:#b9b9b9}
+  table.schedule{border:2px solid #333!important;width:100%!important;min-width:0!important;font-size:10px}
+  table.schedule thead th,table.schedule thead td,.prop-info-cell,.row-label,.rental-row-label,.rental-info-cell,.col-info-th{position:static!important}
+  table.schedule th,table.schedule td{border-right:1px solid #cfcfcf!important;border-bottom:1px solid #e1e1e1!important}
+  col.c-info{width:230px!important}
+  col.c-label{width:34px!important}
+  col.c-sun{width:30px!important}
+  .d-sun .hd-print{font-size:9.5px;letter-spacing:-.02em}
+  .prop-group:last-of-type .sep-row>td{border-top:0!important}
+  .col-info-th{background:#e9eef3!important;color:#000!important;font-weight:700;font-size:11px;vertical-align:middle!important;padding:0 10px!important;border-right:2px solid #333!important;border-bottom:2.5px solid #333!important}
+  .hd{height:auto;background:#e9eef3;padding:3px 0 1px!important}
+  .hd-dow,.hd-num{display:none!important}
+  .hd-print{display:block;font-size:11px;font-weight:700;color:#000}
+  .d-sun .hd-print,.d-hol .hd-print{color:#c00012}
+  .hd-rk{height:auto;font-size:9.5px;color:#333;background:#e9eef3;padding-bottom:2px!important;border-bottom:2.5px solid #333!important}
+  table.schedule .d-sat{background:#f2f2f2!important}
+  table.schedule .d-long{background:#e6f5e9!important}
+  table.schedule .d-sun,table.schedule .d-hol{background:#fdecee!important}
+  table.schedule .d-today{background:#fff6d6!important}
+  table.schedule thead .d-sat{background:#e4e4e4!important}
+  table.schedule thead .d-long{background:#cfe9d4!important}
+  table.schedule thead .d-sun,table.schedule thead .d-hol{background:#f9d3d9!important}
+  table.schedule thead .d-today{background:#ffe680!important}
+  table.schedule .d-sun{border-left:1.5px solid #888!important}
+  .row-label,.rental-row-label{background:#f4f6f8!important;color:#000!important;font-size:9.5px;border-right:2px solid #333!important}
+  tr.r-koudo>td{height:24px}
+  tr.r-sub>td{height:17px}
+  .prop-info-cell{padding:3px 8px 3px 9px!important;border-right:1px solid #cfcfcf!important}
+  .pi{gap:1px}
+  .prop-name{font-size:14px!important;color:#000}
+  .prop-maker-line{font-size:11px!important;color:#000}
+  .prop-dates{font-size:10px;color:#000}
+  .prop-dates b{color:#000}
+  .pc-arrival{font-size:14px}
+  .prop-staff,.prop-note{font-size:9.5px;color:#333}
+  .prop-staff b{color:#333}
+  .pc-pill{background:none!important;color:#333!important;padding:0;font-weight:400}
+  .sep-row>td{border-top:2px solid #333!important}
+  .rental-sep>td{height:0!important;border-top:2px solid #333!important;border-bottom:0!important}
+  .rental-sep .sec{display:none}
+  .rental-info-cell{background:#eef5fa!important}
+  .ri-title{font-size:12px}
+  .cell-event,.cell-text{color:#000!important;background:color-mix(in srgb,var(--c) 22%,#ffffff)!important;height:16px}
   .prop-group{break-inside:avoid;page-break-inside:avoid}
-  .print-title{display:block!important;font-size:14px;font-weight:700;margin-bottom:4px;color:#333}
-  .print-date{display:block!important;font-size:10px;color:#666;margin-bottom:6px}
-  .prop-delete-btn,.editable:hover{display:none!important}
-  .inline-edit-popup,.inline-edit-overlay{display:none!important}
-  .cell-text{font-size:8px!important;padding:0 1px!important}
-  .cell-input-wrap{display:none!important}
-  .print-hide{display:none!important}
-  /* 未入力プレースホルダー（--、着日未設定など）を印刷非表示 */
+  .print-hide,.prop-delete-btn,.pc-factory-empty,.cell-input-wrap,.inline-edit-popup,.inline-edit-overlay{display:none!important}
+  /* 未入力の目印（--、着日未設定など）は印刷しない */
   .editable[style*="color:#aaa"],.editable[style*="color:#bbb"]{display:none!important}
-  .editable{cursor:default!important;background:none!important;outline:none!important}
-  th.col-sun{background:#fce8ec!important;color:#000!important}
-  td.col-sun{background:#fef4f6!important}
-  .col-info-th,.col-rowlabel-th{background:#aac4d8!important}
-  .col-info-th{border-bottom:2.5px solid #333!important}
+  .editable{cursor:default!important;outline:none!important}
+  .editable:not(.prop-name){background:none!important}
 }
-.print-title,.print-date{display:none}
+.print-title{display:none}
 /* 閲覧モード */
 body.view-mode .edit-only{display:none!important}
-body.view-mode .app-header{background:#2c7a4b}
 body.view-mode .view-badge{display:inline-flex!important}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s,transform .3s;z-index:2000;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -215,37 +262,75 @@ body.view-mode .view-badge{display:inline-flex!important}
 <body>
 
 <div class="app-header no-print">
-  <h1>■ PC搬入予定表</h1>
-    <span class="view-badge btn" style="display:none;background:#27ae60;color:#fff;font-size:11px;padding:3px 10px;border-radius:4px;cursor:default">👁 閲覧モード</span>
-  <div class="header-right">
-    <span class="autosave-indicator" id="autoSaveInd">✓ 自動保存</span>
-    <span class="header-time" id="headerTime"></span>
-    <button class="btn btn-green edit-only" onclick="openAddModal()">＋ 新規物件</button>
-    <button class="btn btn-purple edit-only" onclick="exportJSON()">⬇ エクスポート</button>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
-    <button class="btn btn-teal edit-only" onclick="openFactoryModal()">🏭 工場別一覧</button>
-    <button class="btn btn-print" onclick="printSchedule()">🖨 印刷</button>
-    <button class="btn btn-blue edit-only" onclick="openSettings()">⚙ 設定</button>
+  <div class="brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+    <h1>PC搬入予定表</h1>
   </div>
+  <span class="view-badge">閲覧モード</span>
+  <div class="nav">
+    <button class="btn btn-icon" onclick="prevPeriod()" aria-label="前の週" title="前の週">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    <button class="btn" onclick="goToday()">今日</button>
+    <button class="btn btn-icon" onclick="nextPeriod()" aria-label="次の週" title="次の週">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+  <div class="period"><span class="period-title" id="periodTitle"></span><span class="period-sub" id="periodLabel"></span></div>
+  <div class="week-toggle" role="group" aria-label="表示期間">
+    <button class="week-btn" id="wbtn2" onclick="setWeeks(2)">2週</button>
+    <button class="week-btn active" id="wbtn3" onclick="setWeeks(3)">3週</button>
+    <button class="week-btn" id="wbtn4" onclick="setWeeks(4)">4週</button>
+  </div>
+  <div class="spacer"></div>
+  <span class="autosave-indicator" id="autoSaveInd">✓ 保存しました</span>
+  <span class="header-time" id="headerTime"></span>
+  <button class="btn edit-only" onclick="sortByPcDate()" title="PC着日順に並べ替え">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>整列
+  </button>
+  <button class="btn edit-only" onclick="openFactoryModal()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V10l6 4V10l6 4V6l6 4v11z"/></svg>工場別一覧
+  </button>
+  <button class="btn" onclick="printSchedule()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M6 14h12v7H6z"/></svg>印刷
+  </button>
+  <button class="btn edit-only" onclick="exportJSON()">エクスポート</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+  <button class="btn btn-primary edit-only" onclick="openAddModal()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>新規物件
+  </button>
+  <button class="btn btn-icon edit-only" onclick="openSettings()" aria-label="設定" title="設定">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+  </button>
 </div>
 
-<div class="toolbar no-print">
-  <span style="font-size:11px;color:#555;font-weight:600">表示：</span>
-  <div class="week-toggle">
-    <button class="week-btn" id="wbtn2" onclick="setWeeks(2)">2週間</button>
-    <button class="week-btn active" id="wbtn3" onclick="setWeeks(3)">3週間</button>
-    <button class="week-btn" id="wbtn4" onclick="setWeeks(4)">4週間</button>
-  </div>
-  <button class="btn btn-gray" onclick="prevPeriod()">◀ 前</button>
-  <button class="btn btn-gray" onclick="nextPeriod()">次 ▶</button>
-  <button class="btn btn-blue" onclick="goToday()">今日</button>
-  <button class="btn btn-green no-print edit-only" onclick="sortByPcDate()" title="PC着日順（空欄優先）">↕ 整列</button>
-  <span id="periodLabel" style="font-size:11px;color:#555"></span>
+<div class="legend no-print">
+  <span><span class="cell-event event-pc">PC着</span></span>
+  <span><span class="cell-event event-dodai">土台敷き</span></span>
+  <span><span class="cell-event event-joto">上棟</span></span>
+  <span><span class="cell-text">メモ</span></span>
+  <span class="lg-sep"></span>
+  <span><span class="lg-sw" style="background:var(--sunbg)"></span>日曜・祝日</span>
+  <span><span class="lg-sw" style="background:var(--we)"></span>土曜</span>
+  <span><span class="lg-sw" style="background:var(--long)"></span>長期休暇</span>
+  <span><span class="lg-sw" style="background:var(--todaybg)"></span>今日</span>
+  <span class="lg-sep"></span>
+  <span><span class="lg-sw" style="background:#e3f0fa"></span>PC担当 泉</span>
+  <span><span class="lg-sw" style="background:#fef9e3"></span>PC担当 安松</span>
 </div>
 
 <div class="table-wrap">
-  <div class="print-title">■ PC搬入予定表</div>
-  <div class="print-date" id="printDate"></div>
+  <div class="print-title">
+    <b>PC搬入予定表</b>
+    <span id="printDate"></span>
+    <span class="pt-legend">
+      <span class="cell-event event-pc">PC着</span>
+      <span class="cell-event event-dodai">土台敷き</span>
+      <span class="cell-event event-joto">上棟</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><span class="lg-sw" style="background:#e3f0fa"></span>PC 泉</span>
+      <span style="display:inline-flex;align-items:center;gap:4px"><span class="lg-sw" style="background:#fef9e3"></span>PC 安松</span>
+    </span>
+  </div>
   <table class="schedule" id="scheduleTable"></table>
 </div>
 
@@ -291,7 +376,7 @@ body.view-mode .view-badge{display:inline-flex!important}
       <div class="form-group"><label>土台敷き日</label><input type="date" id="f_dodai"></div>
       <div class="form-group"><label>上棟日</label><input type="date" id="f_joto"></div>
       <div class="form-group"><label>最終確認日</label><input type="date" id="f_finalCheck"></div>
-      <div class="form-group full" style="display:flex;gap:14px">
+      <div class="form-group full" style="display:flex;flex-direction:row;gap:14px">
         <div style="flex:1;display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;font-weight:600;color:#555">営業担当</label><select id="f_sales"><option value="">-- 選択 --</option></select></div>
         <div style="flex:1;display:flex;flex-direction:column;gap:3px"><label style="font-size:11px;font-weight:600;color:#555">PC担当</label><select id="f_pc"><option value="">-- 選択 --</option></select></div>
       </div>
@@ -456,11 +541,10 @@ body.view-mode .view-badge{display:inline-flex!important}
 <!-- 工場別一覧モーダル -->
 <div class="modal-overlay" id="factoryModal" style="display:none">
   <div class="modal" style="width:840px;max-height:85vh;overflow-y:auto">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0">
-      <h2 style="border-bottom:2px solid #6a9fc0;padding-bottom:6px;flex:1;margin-right:12px">🏭 PC工場別 出力一覧</h2>
-      <button class="btn btn-gray" onclick="closeModal('factoryModal')" style="flex-shrink:0;margin-top:0">✕ 閉じる</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -20px 16px;padding:10px 20px;background:var(--hdr);border-bottom:1px solid var(--line)">
+      <h2 style="margin:0;padding:0;background:none;border:0">PC工場別 出力一覧</h2>
+      <button class="btn btn-gray" onclick="closeModal('factoryModal')" style="flex-shrink:0">✕ 閉じる</button>
     </div>
-    <div style="margin-bottom:14px"></div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
       <select id="factoryFilter" onchange="renderFactoryModal()" style="border:1px solid #ccc;border-radius:4px;padding:4px 8px;font-size:12px;font-family:inherit"><option value="">全工場表示</option></select>
       <button class="btn btn-blue" onclick="copyFactoryHTML()">HTMLコピー（Gmail用）</button>
@@ -716,7 +800,7 @@ function calcFs(text,maxPx,base,mn){
 function calcCellFs(text,maxPx){
   /* 全角≒0.65em、半角≒0.5em として推定幅を計算 */
   const w=Array.from(text).reduce((a,c)=>a+(c.codePointAt(0)>0x7f?0.65:0.5),0);
-  const base=9;
+  const base=10;
   const needed=w*base;
   if(needed<=maxPx) return base;
   return Math.max(6,Math.floor(maxPx/w));
@@ -864,84 +948,60 @@ function getDates(){
 }
 
 /* ===== テーブル描画 ===== */
+/* 列幅：物件概要・行ラベル・日曜は固定、平日は残りを均等に分ける（最小幅を下回るときだけ横スクロール） */
+const INFO_W=260,LABEL_W=36,SUN_W=32,DAY_MIN=46;
+/* 日付ごとの色分けクラス（土曜・長期休暇・日曜祝日・今日） */
+function dayCls(d){
+  const dow=d.getDay();
+  let c='';
+  if(dow===6)c+=' d-sat';
+  if(isLongHoliday(d))c+=' d-long';
+  if(dow===0)c+=' d-sun';
+  else if(isHoliday(d))c+=' d-hol';
+  if(isoDate(d)===isoDate(TODAY))c+=' d-today';
+  return c;
+}
+/* PC担当のラベル色（物件名の背景色と同じ系統） */
+function pcPillStyle(pc){
+  const nb=getPcNameBg(pc);
+  if(nb==='#fef9e3')return'background:rgba(201,138,0,.16);color:#7a5300';
+  if(nb==='#e3f0fa')return'background:rgba(0,122,255,.12);color:#0058b9';
+  return'background:#f0f0f0;color:#636366';
+}
+
 function renderTable(){
   const dates=getDates();
+  const first=dates[0],last=dates[dates.length-1];
+  const pt=document.getElementById('periodTitle');
+  if(pt)pt.innerHTML=`${first.getFullYear()}年 <b>${first.getMonth()+1}月</b>`;
   const lbl=document.getElementById('periodLabel');
-  if(lbl)lbl.textContent=`${fmtDate(dates[0])} 〜 ${fmtDate(dates[dates.length-1])}`;
+  if(lbl)lbl.textContent=first.getMonth()===last.getMonth()
+    ?`${first.getDate()}日 – ${last.getDate()}日`
+    :`${first.getDate()}日 – ${last.getMonth()+1}月${last.getDate()}日`;
   const tbl=document.getElementById('scheduleTable');
+  tbl.style.minWidth=(INFO_W+LABEL_W+dates.reduce((s,d)=>s+(d.getDay()===0?SUN_W:DAY_MIN),0))+'px';
+  const ncol=dates.length+2;
   let html='';
 
   /* colgroup */
-  html+='<colgroup><col style="width:240px;min-width:240px"><col style="width:28px;min-width:28px">';
-  for(const d of dates) html+=d.getDay()===0?'<col style="width:22px;min-width:22px;max-width:22px">':'<col style="width:40px;min-width:40px;max-width:40px">';
+  html+=`<colgroup><col class="c-info" style="width:${INFO_W}px"><col class="c-label" style="width:${LABEL_W}px">`;
+  for(const d of dates) html+=d.getDay()===0?`<col class="c-sun" style="width:${SUN_W}px">`:'<col class="c-day">';
   html+='</colgroup>';
 
-  /* ===== ヘッダー ===== */
+  /* ===== ヘッダー（曜日・日付・六曜） ===== */
   html+='<thead><tr>';
-  html+=`<th class="col-info-th" colspan="2" rowspan="2" style="text-align:left;color:#222;font-size:11px;padding:4px 8px;border-right:2px solid #888!important;border-bottom:2.5px solid #333!important">物件概要 / 工程情報</th>`;
+  html+='<th class="col-info-th" colspan="2" rowspan="2">物件概要 / 工程情報</th>';
   for(const d of dates){
     const dow=d.getDay();
-    const isSun=dow===0,isSat=dow===6;
-    const isToday=isoDate(d)===isoDate(TODAY);
     const dowd=['日','月','火','水','木','金','土'][dow];
-    const isHol=!isSun&&isHoliday(d);
-    let bg;
-    if(isSun||isHol)bg='#f5c0cb';
-    else if(isToday)bg='#ffe070';
-    else if(isSat)bg='#c8dff0';
-    else if(isLongHoliday(d))bg='#c8e6c9';
-    else bg='#d5e8f4';
-    const holTip=isHol?` title="${holidayName(d)}"`:'' ;
-    const colCls=isSun?' col-sun':isSat?' col-sat':'';
-    html+=`<th class="header-date${colCls}" style="background:${bg};color:#222;padding:2px 1px;text-align:center"${holTip}>${d.getMonth()+1}/${d.getDate()}(${dowd})</th>`;
+    const isToday=isoDate(d)===isoDate(TODAY);
+    const hol=(dow!==0&&isHoliday(d))?holidayName(d):'';
+    const tip=hol?` title="${esc(hol)}"`:'';
+    html+=`<th class="hd${dayCls(d)}"${tip}><span class="hd-dow">${dowd}</span><span class="hd-num${isToday?' hd-today':''}">${d.getDate()}</span><span class="hd-print">${d.getMonth()+1}/${d.getDate()}${dow===0?'':'('+dowd+')'}</span></th>`;
   }
   html+='</tr><tr>';
-  for(const d of dates){
-    const rk=getRokuyo(d);
-    const isSun=d.getDay()===0,isToday=isoDate(d)===isoDate(TODAY);
-    const isHol2=!isSun&&isHoliday(d);
-    const bg=(isSun||isHol2)?'#fde8ec':isToday?'#fff9d6':'#f4f6f8';
-    const colCls2=isSun?' col-sun':'';
-    html+=`<td class="header-date${colCls2}" style="background:${bg};text-align:center;color:#555"><span class="rokuyo">${rk}</span></td>`;
-  }
+  for(const d of dates) html+=`<td class="hd-rk${dayCls(d)}">${getRokuyo(d)}</td>`;
   html+='</tr></thead>';
-
-  /* ===== 固定レンタカー行 ===== */
-  const rentalRows=['🚛','AM1','AM2','PM1','PM2'];
-  html+='<tbody>';
-  for(let ri=0;ri<rentalRows.length;ri++){
-    html+='<tr>';
-    if(ri===0){
-      html+=`<td class="rental-info-cell" rowspan="5">レンタカー・その他配達予定</td>`;
-    }
-    html+=`<td class="rental-row-label">${rentalRows[ri]}</td>`;
-    for(const d of dates){
-      const isSun=d.getDay()===0,isToday=isoDate(d)===isoDate(TODAY);
-      const isHolR=!isSun&&isHoliday(d);
-      const isHolLD=isLongHoliday(d);
-      const bgR=(isSun||isHolR)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isHolLD?'background:#e8f5e9':isToday?'background:#fff9d6':'background:#f0f8fd';
-      const rKey=`${ri}_${isoDate(d)}`;
-      const rTxt=state.rentalTexts[rKey]||'';
-      const rFs=rTxt?calcCellFs(rTxt,38):9;
-      const rCtJson=rTxt?JSON.stringify({type:'celltext',key:rKey,label:rTxt,propId:'rental'}).replace(/"/g,'&quot;'):'';
-      html+=`<td class="rental-cell${isSun?' col-sun':''}" style="${bgR}" onclick="onRentalCellClick(event,'${rKey}')" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onRentalDrop(event,'${rKey}')">`;
-      if(rTxt) html+=`<span class="cell-text" draggable="true" ondragstart="onRentalTextDragStart(event,${rCtJson})" style="font-size:${rFs}px">${esc(rTxt)}</span>`;
-      html+='</td>';
-    }
-    html+='</tr>';
-  }
-  html+=`<tr class="rental-sep"><td style="background:#d5c8ef;position:sticky;left:0"></td><td></td>${dates.map(d=>d.getDay()===0?'<td style="background:#c8e4f2"></td>':'<td></td>').join('')}</tr>`;
-  html+='</tbody>';
-
-  /* ===== 物件行 ===== */
-  const rows=[
-    {key:'koudo',label:'工程'},{key:'am1',label:'AM1'},
-    {key:'am2',label:'AM2'},{key:'pm1',label:'PM1'},{key:'pm2',label:'PM2'},
-  ];
-
-  if(state.properties.length===0){
-    html+='<tbody><tr><td colspan="'+(dates.length+2)+'" style="padding:24px;text-align:center;color:#aaa">物件がありません。「＋ 新規物件」ボタンで追加してください。</td></tr></tbody>';
-  }
 
   /* 表示開始日より前に全予定が終了している物件を非表示 */
   const _pStart=dates[0].getTime();
@@ -965,78 +1025,106 @@ function renderTable(){
     const latest=Math.max(...allDates);
     return latest<_pStart; /* 最後の予定が表示開始日より前 → 非表示 */
   }
+  const visibleProps=state.properties.filter(p=>!allBeforePeriod(p));
 
-  for(const prop of state.properties){
-    if(allBeforePeriod(prop)) continue;
+  /* ===== レンタカー・その他予定 ===== */
+  const rentalRows=['🚛','AM1','AM2','PM1','PM2'];
+  html+='<tbody>';
+  for(let ri=0;ri<rentalRows.length;ri++){
+    html+=`<tr class="${ri===0?'r-koudo':'r-sub'}">`;
+    if(ri===0){
+      html+=`<td class="rental-info-cell" rowspan="5"><div class="ri-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3a3a3a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 6h13v10H1zM14 10h4l4 4v2h-8z"/><circle cx="5.5" cy="17.5" r="1.8"/><circle cx="17.5" cy="17.5" r="1.8"/></svg>レンタカー・その他予定</div><div class="ri-hint no-print edit-only">クリックで入力 / ドラッグで移動</div></td>`;
+    }
+    html+=`<td class="rental-row-label${ri===0?' rl-first':''}">${rentalRows[ri]}</td>`;
+    for(const d of dates){
+      const rKey=`${ri}_${isoDate(d)}`;
+      const rTxt=state.rentalTexts[rKey]||'';
+      const rFs=rTxt?calcCellFs(rTxt,44):10;
+      const rCtJson=rTxt?JSON.stringify({type:'celltext',key:rKey,label:rTxt,propId:'rental'}).replace(/"/g,'&quot;'):'';
+      html+=`<td class="rental-cell${dayCls(d)}" onclick="onRentalCellClick(event,'${rKey}')" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onRentalDrop(event,'${rKey}')">`;
+      if(rTxt) html+=`<span class="cell-text" draggable="true" ondragstart="onRentalTextDragStart(event,${rCtJson})" style="font-size:${rFs}px">${esc(rTxt)}</span>`;
+      html+='</td>';
+    }
+    html+='</tr>';
+  }
+  html+=`<tr class="rental-sep"><td colspan="${ncol}"><span class="sec"><b>物件</b><span>${visibleProps.length}件</span></span></td></tr>`;
+  html+='</tbody>';
+
+  /* ===== 物件行 ===== */
+  const rows=[
+    {key:'koudo',label:'工程'},{key:'am1',label:'AM1'},
+    {key:'am2',label:'AM2'},{key:'pm1',label:'PM1'},{key:'pm2',label:'PM2'},
+  ];
+
+  if(state.properties.length===0){
+    html+=`<tbody><tr><td colspan="${ncol}" style="padding:24px;text-align:center;color:#8e8e93">物件がありません。「新規物件」ボタンで追加してください。</td></tr></tbody>`;
+  }
+
+  for(const prop of visibleProps){
     /* pcdates配列から最も早い日を取得 */
     const _allPc=(prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean).sort();
     const _earliestPc=_allPc[0]||'';
     const pcDateStr=_earliestPc
-      ?('<span class="pc-arrival editable" onclick="openInlineEdit(event,'+prop.id+',\'pcdate\',\'PC着日\',\'date\')" title="クリックで編集">'+fmtShort(_earliestPc)+'着</span>')
-      :('<span class="editable no-print" style="color:#aaa;font-size:10px" onclick="openInlineEdit(event,'+prop.id+',\'pcdate\',\'PC着日\',\'date\')" title="PC着日を設定">着日未設定</span>');
-    const finalStr=prop.finalCheck
-      ?`<span><span class="date-label">最終確認:</span><span class="editable" onclick="openInlineEdit(event,${prop.id},'finalCheck','最終確認日','date')" title="クリックで編集">${fmtShort(prop.finalCheck)}</span></span>`
-      :`<span><span class="date-label">最終確認:</span><span class="editable no-print" style="color:#aaa" onclick="openInlineEdit(event,${prop.id},'finalCheck','最終確認日','date')" title="クリックで編集">--</span></span>`;
-    const dodaiStr=prop.dodai
-      ?`<span><span class="date-label">土台:</span><span class="editable" onclick="openInlineEdit(event,${prop.id},'dodai','土台敷き日','date')" title="クリックで編集">${fmtShort(prop.dodai)}</span></span>`
-      :`<span><span class="date-label">土台:</span><span class="editable no-print" style="color:#aaa" onclick="openInlineEdit(event,${prop.id},'dodai','土台敷き日','date')" title="クリックで編集">--</span></span>`;
-    const jotoStr=prop.joto
-      ?`<span><span class="date-label">上棟:</span><span class="editable" onclick="openInlineEdit(event,${prop.id},'joto','上棟日','date')" title="クリックで編集">${fmtShort(prop.joto)}</span></span>`
-      :`<span><span class="date-label">上棟:</span><span class="editable no-print" style="color:#aaa" onclick="openInlineEdit(event,${prop.id},'joto','上棟日','date')" title="クリックで編集">--</span></span>`;
+      ?('<span class="pc-arrival editable" onclick="openInlineEdit(event,'+prop.id+',\'pcdate\',\'PC着日\',\'date\')" title="クリックで編集">'+fmtShort(_earliestPc)+'着</span>'+(_allPc.length>1?'<span class="pc-extra">分納'+_allPc.length+'回</span>':''))
+      :('<span class="editable no-print" style="color:#aaa;font-size:11px" onclick="openInlineEdit(event,'+prop.id+',\'pcdate\',\'PC着日\',\'date\')" title="PC着日を設定">着日未設定</span>');
+    /* 日付欄（土台・上棟・最終確認） */
+    const dateField=(field,label,title)=>prop[field]
+      ?`<span>${label} <b class="editable" onclick="openInlineEdit(event,${prop.id},'${field}','${title}','date')" title="クリックで編集">${fmtShort(prop[field])}</b></span>`
+      :`<span>${label} <span class="editable no-print" style="color:#aaa" onclick="openInlineEdit(event,${prop.id},'${field}','${title}','date')" title="クリックで編集">--</span></span>`;
 
     const nameFull=prop.name||'';
     const makerFull=(prop.makerName||'')+(prop.makerStaff?' ('+prop.makerStaff+')':'');
-    const nameFs=calcFs(nameFull,234,16,10);
-    const makerFs=makerFull?calcFs(makerFull,234,13,9):13;
-
-    /* 営業・PC担当の選択肢 */
-    const salesOpts=state.salesStaff.map(s=>`<option value="${esc(s)}"${prop.sales===s?' selected':''}>${esc(s)}</option>`).join('');
-    const pcOpts=state.pcStaff.map(s=>`<option value="${esc(s)}"${prop.pc===s?' selected':''}>${esc(s)}</option>`).join('');
+    const nameFs=calcFs(nameFull,170,15,10);
+    const makerFs=makerFull?calcFs(makerFull,170,12,9):12;
 
     /* 工務店担当の選択肢（工務店マスタから） */
     const mk=state.makers.find(m=>m.name===prop.makerName);
     const staffOpts=(mk?mk.staff:[]).map(s=>`<option value="${esc(s)}"${prop.makerStaff===s?' selected':''}>${esc(s)}</option>`).join('');
 
-    const infoCell=`<td class="prop-info-cell" rowspan="5" style="position:relative">
-      <div style="display:flex;align-items:center;gap:3px;overflow:hidden">
-        <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
-        ${(()=>{const _fc=getFactoryColor(prop.pcFactory);return prop.pcFactory?`<span class='pc-factory-tag editable' style='background:${_fc.bg};color:${_fc.color};border-color:${_fc.border}' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を変更'>${esc(prop.pcFactory)}</span>`:`<span class='pc-factory-tag pc-factory-empty editable no-print' onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title='PC工場を設定'>未設定</span>`})()} 
-        <button class="prop-delete-btn no-print edit-only" onclick="deleteProp(${prop.id})" title="削除" style="position:static;margin-left:auto;flex-shrink:0">✕</button>
+    const fc=getFactoryColor(prop.pcFactory);
+    const factoryTag=prop.pcFactory
+      ?`<span class="pc-factory-tag editable" onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title="PC工場を変更"><span class="dot" style="background:${fc.color}"></span>${esc(prop.pcFactory)}</span>`
+      :`<span class="pc-factory-tag pc-factory-empty editable no-print" onclick="openInlineEdit(event,${prop.id},'pcFactory','PC工場','pcFactorySelect')" title="PC工場を設定">工場未設定</span>`;
+
+    const _mn=prop.makerName
+      ?('<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'makerName\',\'工務店名\',\'makerSelect\')">'+esc(prop.makerName)+'</span>')
+      :('<span class="editable print-hide" style="color:#aaa" onclick="openInlineEdit(event,'+prop.id+',\'makerName\',\'工務店名\',\'makerSelect\')">工務店</span>');
+    const _ms=(prop.makerName&&staffOpts)
+      ?(' <span style="color:#636366">(</span><span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'makerStaff\',\'工務店担当\',\'staffSelect\')">'+esc(prop.makerStaff||'未選択')+'</span><span style="color:#636366">)</span>')
+      :'';
+    const _ts='<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'tsubo\',\'坪数\',\'text\')">'+esc(fmtTsubo(prop.tsubo)||'--')+'</span> / <span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'floors\',\'階数\',\'floorsSelect\')">'+esc(prop.floors||'--')+'</span>';
+
+    const noteHtml=prop.note
+      ?`※<span class="editable" onclick="openInlineEdit(event,${prop.id},'note','備考','text')" title="備考を編集">${esc(prop.note)}</span>`
+      :`<span class="editable print-hide" style="color:#bbb" onclick="openInlineEdit(event,${prop.id},'note','備考','text')" title="備考を入力">※備考を入力</span>`;
+
+    const infoCell=`<td class="prop-info-cell" rowspan="5"><div class="pi">
+      <div class="pi-row">
+        <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)}" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
+        ${factoryTag}
+        <button class="prop-delete-btn no-print edit-only" onclick="deleteProp(${prop.id})" title="削除" aria-label="この物件を削除"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
-      ${(()=>{
-        const _mn=prop.makerName
-          ?('<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'makerName\',\'工務店名\',\'makerSelect\')"><b>'+esc(prop.makerName)+'</b></span>')
-          :('<span class="editable print-hide" style="color:#aaa" onclick="openInlineEdit(event,'+prop.id+',\'makerName\',\'工務店名\',\'makerSelect\')">工務店</span>');
-        const _ms=(prop.makerName&&staffOpts)
-          ?(' (<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'makerStaff\',\'工務店担当\',\'staffSelect\')">'+esc(prop.makerStaff||'未選択')+'</span>)')
-          :'';
-        const _ts='<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'tsubo\',\'坪数\',\'text\')">'+esc(fmtTsubo(prop.tsubo)||'--')+'</span>/<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'floors\',\'階数\',\'floorsSelect\')">'+esc(prop.floors||'--')+'</span>';
-        return '<div class="prop-maker-line" style="font-size:'+makerFs+'px"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_mn+_ms+'</span><span style="white-space:nowrap;margin-left:4px;font-size:9px;color:#666;flex-shrink:0">'+_ts+'</span></div>';
-      })()}
-      ${(()=>{const nid=prop.id;const ntxt=prop.note?`※<span class="editable" onclick="openInlineEdit(event,${nid},'note','備考','text')" title="備考を編集">${esc(prop.note)}</span>`:`<span class="editable print-hide" style="color:#bbb;font-size:10px" onclick="openInlineEdit(event,${nid},'note','備考','text')" title="備考を入力">※備考を入力</span>`;return`<div class="prop-note">${ntxt}</div>`})()}
-      <div class="prop-dates">${pcDateStr}${finalStr}${dodaiStr}${jotoStr}</div>
-      <div class="prop-staff">営業：<span class="editable" onclick="openInlineEdit(event,${prop.id},'sales','営業担当','salesSelect')" title="営業担当を変更">${esc(prop.sales||'--')}</span>　PC：<span class="editable" onclick="openInlineEdit(event,${prop.id},'pc','PC担当','pcSelect')" title="PC担当を変更">${esc(prop.pc||'--')}</span></div>
-    </td>`;
+      <div class="prop-maker-line" style="font-size:${makerFs}px"><span class="pm-name">${_mn}${_ms}</span><span class="pm-size">${_ts}</span></div>
+      <div class="prop-dates">${pcDateStr}${dateField('dodai','土台','土台敷き日')}${dateField('joto','上棟','上棟日')}</div>
+      <div class="prop-staff"><span class="pc-pill editable" style="${pcPillStyle(prop.pc)}" onclick="openInlineEdit(event,${prop.id},'pc','PC担当','pcSelect')" title="PC担当を変更">PC ${esc(prop.pc||'--')}</span><span>営業 <b class="editable" onclick="openInlineEdit(event,${prop.id},'sales','営業担当','salesSelect')" title="営業担当を変更">${esc(prop.sales||'--')}</b></span>${dateField('finalCheck','最終確認','最終確認日')}</div>
+      <div class="prop-note">${noteHtml}</div>
+    </div></td>`;
 
     html+=`<tbody class="prop-group">`;
     for(let ri=0;ri<rows.length;ri++){
       const row=rows[ri];
-      html+='<tr>';
+      html+=`<tr class="${ri===0?'r-koudo':'r-sub'}">`;
       if(ri===0)html+=infoCell;
-      html+=`<td class="row-label">${row.label}</td>`;
+      html+=`<td class="row-label${ri===0?' rl-first':''}">${row.label}</td>`;
       for(const d of dates){
         const ds=isoDate(d);
-        const isSun=d.getDay()===0,isSat=d.getDay()===6,isToday=ds===isoDate(TODAY);
-        const isHolC=!isSun&&isHoliday(d);
         const events=getEventsOnDate(prop,ds,row.key);
-        const isHolLD2=isLongHoliday(d);
-        const bg=(isSun||isHolC)?(isToday?'background:#ffd6e0':'background:#fff0f4'):isSat?(isToday?'background:#fff9d6':'background:#f0f0f0'):isHolLD2?'background:#e8f5e9':isToday?'background:#fff9d6':'';
         const cellKey=`${prop.id}_${ds}_${row.key}`;
         const cellTxt=state.cellTexts[cellKey]||'';
-        html+=`<td class="schedule-cell${isSun?' col-sun':''}" style="${bg?bg+';':''}" data-propid="${prop.id}" data-date="${ds}" data-rowkey="${row.key}" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="onCellClick(event,'${cellKey}')">`;
+        html+=`<td class="schedule-cell${dayCls(d)}" data-propid="${prop.id}" data-date="${ds}" data-rowkey="${row.key}" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="onCellClick(event,'${cellKey}')">`;
         for(const ev of events){
           const evJson=JSON.stringify(ev).replace(/"/g,'&quot;');
-          const _bFs=calcCellFs(ev.label,38);
+          const _bFs=calcCellFs(ev.label,44);
           html+=`<span class="cell-event ${ev.cls}" draggable="true" ondragstart="onDragStart(event,${evJson})" ondblclick="onBadgeDblClick(event,${evJson})" title="ダブルクリックで編集・削除" style="font-size:${_bFs}px">${ev.label}</span>`;
         }
         /* バッジと同じ内容のcellTextは表示しない（重複防止） */
@@ -1049,15 +1137,14 @@ function renderTable(){
         }
         if(cellTxt&&!_isBadgeDup(cellTxt)){
           const ctJson=JSON.stringify({type:'celltext',key:cellKey,label:cellTxt,propId:prop.id}).replace(/"/g,'&quot;');
-          const _ctFs=calcCellFs(cellTxt,38);
+          const _ctFs=calcCellFs(cellTxt,44);
           html+=`<span class="cell-text" draggable="true" ondragstart="onCellTextDragStart(event,${ctJson})" style="font-size:${_ctFs}px">${esc(cellTxt)}</span>`;
         }
         html+='</td>';
       }
       html+='</tr>';
     }
-    const sepCols=dates.map(d=>d.getDay()===0?'<td style="background:#fde0e6"></td>':'<td></td>').join('');
-    html+=`<tr class="sep-row"><td style="background:#e4eaf0;position:sticky;left:0"></td><td></td>${sepCols}</tr></tbody>`;
+    html+=`<tr class="sep-row"><td colspan="${ncol}"></td></tr></tbody>`;
   }
 
   tbl.innerHTML=html;
