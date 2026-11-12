@@ -145,6 +145,14 @@ tr.r-sub>td{height:20px}
 /* 予定ラベル（PC着・土台敷き・上棟・メモ）：薄い色の面＋左の線、黒文字 */
 .cell-event,.cell-text{display:flex;align-items:center;justify-content:center;width:max-content;height:18px;margin:1px auto;padding:0 5px 0 7px;border-radius:4px;font-weight:600;white-space:nowrap;color:var(--tx);background:color-mix(in srgb,var(--c) 20%,#ffffff);box-shadow:inset 2.5px 0 0 var(--c);position:relative;z-index:5;cursor:grab;user-select:none}
 .cell-event:active,.cell-text:active{cursor:grabbing;opacity:.7}
+/* 表の中の予定はセル幅いっぱいに表示（印刷でも目立つように） */
+.schedule-cell .cell-event,.schedule-cell .cell-text,.rental-cell .cell-text{width:auto;margin:1px 2px;overflow:hidden}
+/* 日付の矛盾・休日の予定 */
+.cell-event.ev-warn{outline:1.5px dashed var(--redtx);outline-offset:-1.5px}
+.warn-ico{flex:none;display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#ffe5e3;color:var(--redtx);font-size:11px;font-weight:800;cursor:help}
+.prop-edit-btn{border:0;background:transparent;color:var(--tx3);width:18px;height:18px;padding:0;border-radius:4px;cursor:pointer;display:grid;place-items:center;flex:none;margin-left:auto}
+.prop-edit-btn:hover{background:var(--hov);color:var(--acc)}
+.prop-edit-btn+.prop-delete-btn{margin-left:0}
 .event-pc{--c:var(--c-pc)}.event-dodai{--c:var(--c-dodai)}.event-joto{--c:var(--c-joto)}
 .cell-text{--c:var(--c-memo);font-weight:500}
 .cell-input-wrap{position:absolute;top:0;left:0;width:100%;height:100%;z-index:50;display:flex;align-items:center;justify-content:center}
@@ -187,8 +195,6 @@ tr.r-sub>td{height:20px}
 .staff-tag button{background:none;border:none;cursor:pointer;color:var(--redtx);font-size:11px;padding:0;line-height:1}
 .small-input{border:1px solid var(--inpl);border-radius:6px;padding:4px 7px;font-size:12px;font-family:inherit;outline:none;color:var(--tx);background:var(--inp)}
 .small-input:focus{border-color:var(--acc)}
-.discord-preview{background:#36393f;color:#dcddde;border-radius:6px;padding:12px;font-size:12px;margin:10px 0;line-height:1.6}
-.discord-channel{color:#7289da;font-weight:700;font-size:11px;margin-bottom:6px}
 .notice{font-size:11px;color:var(--tx3);background:var(--panel);border-radius:6px;padding:6px 10px;margin-top:6px}
 
 /* ===== 印刷（A3横） ===== */
@@ -257,6 +263,47 @@ body.view-mode .edit-only{display:none!important}
 body.view-mode .view-badge{display:inline-flex!important}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s,transform .3s;z-index:2000;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* 最終更新 */
+.last-update{font-size:11.5px;color:var(--tx3);white-space:nowrap;margin-left:auto}
+.last-update+.lg-filter{margin-left:6px}
+/* 元に戻すバー */
+.undo-bar{position:fixed;left:16px;bottom:16px;display:flex;align-items:center;gap:10px;background:#2c2c2e;color:#fff;padding:7px 8px 7px 14px;border-radius:10px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);z-index:1900;opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .2s,transform .2s}
+.undo-bar.show{opacity:1;transform:none;pointer-events:auto}
+.undo-bar button{border:0;background:#0a84ff;color:#fff;font:inherit;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer}
+.undo-bar .undo-key{color:#aeaeb2;font-size:11px}
+/* 絞り込み */
+.lg-filter{margin-left:auto;display:inline-flex;align-items:center;gap:6px}
+.lg-filter select,.lg-filter input{font:inherit;font-size:11.5px;border:1px solid var(--line);border-radius:6px;padding:3px 6px;background:#fff;color:var(--tx)}
+.lg-filter input{width:150px}
+.lg-filter.active select:not([data-v=""]),.lg-filter.active input:not(:placeholder-shown){border-color:var(--acc);background:#eef5ff}
+.flt-clear{border:0;background:transparent;color:var(--acc);font:inherit;font-size:11.5px;cursor:pointer;display:none}
+.lg-filter.active .flt-clear{display:inline}
+/* 自動バックアップ一覧 */
+.bk-row{display:flex;align-items:center;gap:10px;padding:4px 0;border-bottom:1px solid var(--grid);font-size:12px}
+.bk-date{font-weight:600;width:84px}.bk-info{color:var(--tx3);flex:1}
+.bk-row .btn{padding:2px 10px;font-size:11px}
+.bk-empty{font-size:11px;color:#999;padding:4px 0}
+/* スマホ：一覧表示 */
+#mobileList{display:none}
+.mobile-only{display:none!important}
+@media (max-width:767px){
+  .mobile-only{display:inline-flex!important}
+  .app-header{gap:6px;padding:8px 10px}
+  .app-header .week-toggle,.app-header .header-time,.app-header .last-update,.app-header .btn:not(.keep-mobile):not(.mobile-only){display:none!important}
+  body.mobile-list .nav,body.mobile-list .period{display:none!important}
+  .legend{display:none}
+  body.mobile-list .table-wrap{display:none}
+  body.mobile-list #mobileList{display:block;flex:1;overflow:auto;padding:10px 12px 40px;-webkit-overflow-scrolling:touch}
+}
+.ml-note{font-size:11px;color:var(--tx3);margin-bottom:10px}
+.ml-day{margin-bottom:12px}
+.ml-dh{font-size:13px;font-weight:700;padding:4px 2px;border-bottom:1px solid var(--line);margin-bottom:4px;display:flex;gap:8px;align-items:baseline}
+.ml-dh.sun{color:var(--redtx)}.ml-dh .today{font-size:11px;color:#fff;background:var(--acc);border-radius:8px;padding:0 7px}
+.ml-dh .hol{font-size:11px;font-weight:500;color:var(--redtx)}
+.ml-item{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:13px;border-bottom:1px solid var(--grid)}
+.ml-item .cell-event,.ml-item .cell-text{margin:0;flex:none;font-size:11px;min-width:60px;cursor:default}
+.ml-item .ml-name{font-weight:600}.ml-item .ml-sub{font-size:11px;color:var(--tx3)}
+.ml-empty{color:var(--tx3);font-size:13px;padding:20px 0;text-align:center}
 </style>
 </head>
 <body>
@@ -268,11 +315,11 @@ body.view-mode .view-badge{display:inline-flex!important}
   </div>
   <span class="view-badge">閲覧モード</span>
   <div class="nav">
-    <button class="btn btn-icon" onclick="prevPeriod()" aria-label="前の週" title="前の週">
+    <button class="btn btn-icon keep-mobile" onclick="prevPeriod()" aria-label="前の週" title="前の週">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
     </button>
-    <button class="btn" onclick="goToday()">今日</button>
-    <button class="btn btn-icon" onclick="nextPeriod()" aria-label="次の週" title="次の週">
+    <button class="btn keep-mobile" onclick="goToday()">今日</button>
+    <button class="btn btn-icon keep-mobile" onclick="nextPeriod()" aria-label="次の週" title="次の週">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
     </button>
   </div>
@@ -284,6 +331,7 @@ body.view-mode .view-badge{display:inline-flex!important}
   </div>
   <div class="spacer"></div>
   <span class="autosave-indicator" id="autoSaveInd">✓ 保存しました</span>
+  <button class="btn mobile-only" id="mobileToggle" onclick="toggleMobileView()">表で見る</button>
   <span class="header-time" id="headerTime"></span>
   <button class="btn edit-only" onclick="sortByPcDate()" title="PC着日順に並べ替え">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>整列
@@ -317,6 +365,13 @@ body.view-mode .view-badge{display:inline-flex!important}
   <span class="lg-sep"></span>
   <span><span class="lg-sw" style="background:#e3f0fa"></span>PC担当 泉</span>
   <span><span class="lg-sw" style="background:#fef9e3"></span>PC担当 安松</span>
+  <span class="last-update" id="lastUpdate"></span>
+  <span class="lg-filter" id="fltBox">
+    <select id="flt_pc" data-v="" onchange="setFilter()" aria-label="PC担当で絞り込み"><option value="">PC担当：全員</option></select>
+    <select id="flt_factory" data-v="" onchange="setFilter()" aria-label="工場で絞り込み"><option value="">工場：すべて</option></select>
+    <input id="flt_q" type="search" placeholder="物件名・工務店で検索" oninput="setFilter()" aria-label="物件名・工務店で検索">
+    <button class="flt-clear" onclick="clearFilter()">解除</button>
+  </span>
 </div>
 
 <div class="table-wrap">
@@ -333,6 +388,7 @@ body.view-mode .view-badge{display:inline-flex!important}
   </div>
   <table class="schedule" id="scheduleTable"></table>
 </div>
+<div id="mobileList" class="no-print"></div>
 
 <!-- インライン編集ポップアップ -->
 <div class="inline-edit-overlay" id="editOverlay" style="display:none" onclick="closeInlineEdit(false)"></div>
@@ -350,7 +406,7 @@ body.view-mode .view-badge{display:inline-flex!important}
 <!-- 新規物件 -->
 <div class="modal-overlay" id="addModal" style="display:none">
   <div class="modal">
-    <h2>新規物件登録</h2>
+    <h2 id="addModalTitle">新規物件登録</h2>
     <div class="form-grid">
       <div class="form-group full"><label>物件名 *</label><input type="text" id="f_name" placeholder="例：細見様邸"></div>
       <div class="form-group"><label>工務店名</label>
@@ -389,7 +445,7 @@ body.view-mode .view-badge{display:inline-flex!important}
     </div>
     <div class="modal-footer">
       <button class="btn btn-gray" onclick="closeModal('addModal')">キャンセル</button>
-      <button class="btn btn-green" onclick="saveProperty()">登録</button>
+      <button class="btn btn-green" id="addModalSave" onclick="saveProperty()">登録</button>
     </div>
   </div>
 </div>
@@ -398,6 +454,14 @@ body.view-mode .view-badge{display:inline-flex!important}
 <div class="modal-overlay" id="settingsModal" style="display:none">
   <div class="modal" style="width:660px">
     <h2>⚙ 設定</h2>
+    <div class="settings-section">
+      <h3>この端末</h3>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px">名前</label>
+        <input class="small-input" id="editorNameInput" placeholder="例：岩井" style="width:160px" onchange="saveEditorName()">
+        <span style="font-size:10px;color:#888">画面上部の「最終更新」に表示されます</span>
+      </div>
+    </div>
     <div class="settings-section">
       <h3>工務店マスタ</h3>
       <div class="maker-list" id="makerList"></div>
@@ -481,6 +545,8 @@ body.view-mode .view-badge{display:inline-flex!important}
         <button class="btn btn-gray" onclick="document.getElementById('importFile').click()">⬆ インポート</button>
       </div>
       <div style="font-size:10px;color:#888;margin-top:6px">アーカイブ：タイムスタンプ付きJSONで保存。インポート：JSONファイルを読み込んでデータを復元。</div>
+      <div style="font-size:11px;font-weight:600;margin:12px 0 4px;color:#333">自動バックアップ（毎日1回・14日分）</div>
+      <div id="backupList"></div>
     </div>
     <div class="modal-footer"><button class="btn btn-gray" onclick="closeModal('settingsModal')">閉じる</button></div>
   </div>
@@ -514,26 +580,6 @@ body.view-mode .view-badge{display:inline-flex!important}
   </div>
 </div>
 
-<!-- Discord -->
-<div class="modal-overlay" id="discordModal" style="display:none">
-  <div class="modal" style="width:480px">
-    <h2>📢 Discord投稿</h2>
-    <div style="margin-bottom:10px">
-      <label style="font-size:11px;font-weight:600;color:#555">Webhook URL</label>
-      <input type="text" id="webhookUrl" placeholder="https://discord.com/api/webhooks/..."
-        style="width:100%;margin-top:4px;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:11px;font-family:inherit">
-    </div>
-    <div class="discord-preview">
-      <div class="discord-channel"># pc-schedule</div>
-      <div>PC予定表　更新しました。<br>追加、変更、訂正ある場合はこちらのチャンネルにUPしてください。<br>ご確認お願い致します。</div>
-    </div>
-    <div class="notice">※ Discord サーバーで作成した Webhook URL を入力して投稿してください。</div>
-    <div class="modal-footer">
-      <button class="btn btn-gray" onclick="closeModal('discordModal')">キャンセル</button>
-      <button class="btn btn-orange" onclick="postDiscord()">投稿する</button>
-    </div>
-  </div>
-</div>
 
 <!-- Firebase SDK (compat版: グローバル変数として使用可能) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -557,6 +603,7 @@ body.view-mode .view-badge{display:inline-flex!important}
 </div>
 
 <div class="toast no-print" id="toastEl"></div>
+<div class="undo-bar no-print" id="undoBar"><span>変更しました</span><button onclick="undoLast()">元に戻す</button><span class="undo-key">Ctrl+Z</span></div>
 <script>
 /* ===== 祝日 ===== */
 /* holidays-jp.github.io の公開JSONを取得。オフライン時は固定データにフォールバック */
@@ -621,20 +668,147 @@ let _localRev=0,_ackRev=0,_inflight=0,_synced=false;
 function _hasUnsaved(){return _localRev!==_ackRev||_inflight>0}
 
 /* Firebaseは空のリスト・空のオブジェクトを保存しないため、受信時に無い項目は空で補う */
-const SYNC_EMPTY_DEFAULTS={properties:[],cellTexts:{},rentalTexts:{},holidays:[]};
+const SYNC_EMPTY_DEFAULTS={properties:[],cellTexts:{},rentalTexts:{},holidays:[],makers:[],salesStaff:[],pcStaff:[],pcFactories:[]};
 
-/* Firebaseにデータを保存 */
+/* ===== 同期：2人が同時に保存しても上書きで消えないよう、項目ごとにマージして保存 =====
+   _base : 最後にサーバーと一致していたデータ（ここからの差分を「手元の変更」とみなす） */
+let _base=null,_saveQueued=false;
+const LOCAL_ONLY_KEYS=['startDate','weeks','dragData']; /* 端末ごとの表示設定（共有しない） */
+function _snapData(src){
+  const o={};
+  for(const k in src){if(LOCAL_ONLY_KEYS.includes(k))continue;o[k]=src[k];}
+  return JSON.parse(JSON.stringify(o));
+}
+/* 比較用：キー順をそろえ、空のリスト・空のオブジェクト・nullは「なし」と同じ扱い（Firebaseの保存形式に合わせる） */
+function _canon(x){
+  if(x===null||x===undefined)return undefined;
+  if(Array.isArray(x)){const a=x.map(_canon).filter(v=>v!==undefined);return a.length?a:undefined;}
+  if(typeof x==='object'){
+    const o={};let n=0;
+    Object.keys(x).sort().forEach(k=>{const v=_canon(x[k]);if(v!==undefined){o[k]=v;n++;}});
+    return n?o:undefined;
+  }
+  return x;
+}
+function _eq(a,b){return JSON.stringify(_canon(a))===JSON.stringify(_canon(b))}
+/* 受信データを画面で使える形にそろえる */
+function _normRemote(v){
+  v=JSON.parse(JSON.stringify(v||{}));
+  normalizeDates(v);
+  for(const k in SYNC_EMPTY_DEFAULTS){
+    if(v[k]===undefined||v[k]===null)v[k]=Array.isArray(SYNC_EMPTY_DEFAULTS[k])?[]:{};
+  }
+  return v;
+}
+/* 3者マージ：b=元 l=手元 r=サーバー。手元で変えた所は手元、変えていない所はサーバーを採用 */
+function _mergeMap(b,l,r){
+  b=b||{};l=l||{};r=r||{};
+  const out={};
+  new Set([...Object.keys(b),...Object.keys(l),...Object.keys(r)]).forEach(k=>{
+    const v=_eq(l[k],b[k])?r[k]:l[k];
+    if(v!==undefined&&v!==null)out[k]=v;
+  });
+  return out;
+}
+function _mergeProps(b,l,r){
+  b=b||[];l=l||[];r=r||[];
+  const bm=new Map(b.map(p=>[p.id,p])),lm=new Map(l.map(p=>[p.id,p])),rm=new Map(r.map(p=>[p.id,p]));
+  const res=new Map();
+  new Set([...bm.keys(),...lm.keys(),...rm.keys()]).forEach(id=>{
+    const bp=bm.get(id),lp=lm.get(id),rp=rm.get(id);
+    if(_eq(lp,bp)){if(rp)res.set(id,rp);return;} /* 手元で変更なし → サーバー側 */
+    if(!lp)return;                                /* 手元で削除 */
+    if(!bp||!rp){res.set(id,lp);return;}          /* 手元で追加 */
+    res.set(id,_mergeMap(bp,lp,rp));              /* 両方にある → 項目ごと */
+  });
+  /* 並び順：手元で並べ替え・追加していれば手元の順、それ以外はサーバーの順 */
+  const ids=a=>a.map(p=>p.id);
+  const bo=ids(b).filter(id=>lm.has(id)),lo=ids(l).filter(id=>bm.has(id));
+  const localOrder=JSON.stringify(bo)!==JSON.stringify(lo)||ids(l).some(id=>!bm.has(id));
+  const order=localOrder?[...ids(l),...ids(r)]:[...ids(r),...ids(l)];
+  const out=[],seen=new Set();
+  order.forEach(id=>{if(res.has(id)&&!seen.has(id)){seen.add(id);out.push(res.get(id));}});
+  return out;
+}
+function mergeData(b,l,r){
+  b=b||{};l=l||{};r=r||{};
+  const out={};
+  new Set([...Object.keys(b),...Object.keys(l),...Object.keys(r)]).forEach(k=>{
+    let v;
+    if(k==='properties')v=_mergeProps(b[k],l[k],r[k]);
+    else if(k==='cellTexts'||k==='rentalTexts'||k==='factorySent')v=_mergeMap(b[k],l[k],r[k]);
+    else v=_eq(l[k],b[k])?r[k]:l[k];
+    if(v!==undefined)out[k]=v;
+  });
+  return out;
+}
+
+/* この端末の名前（最終更新の表示用） */
+const EDITOR_KEY='pc_schedule_editor';
+function editorName(){try{return localStorage.getItem(EDITOR_KEY)||''}catch(e){return''}}
+function renderEditorName(){const el=document.getElementById('editorNameInput');if(el)el.value=editorName();}
+function saveEditorName(){
+  const el=document.getElementById('editorNameInput');
+  try{localStorage.setItem(EDITOR_KEY,el.value.trim());}catch(e){}
+  showToast('この端末の名前を保存しました');
+}
+/* 最終更新の表示 */
+function renderMeta(){
+  const el=document.getElementById('lastUpdate');if(!el)return;
+  const m=state.meta;
+  if(!m||!m.at){el.textContent='';return;}
+  const d=new Date(m.at);
+  const sameDay=isoDate(d)===isoDate(TODAY);
+  el.textContent=`最終更新 ${sameDay?'':(d.getMonth()+1)+'/'+d.getDate()+' '}${zp(d.getHours())}:${zp(d.getMinutes())}${m.by?'（'+m.by+'）':''}`;
+}
+
+/* Firebaseにデータを保存（サーバーの最新とマージ） */
 function saveToFirebase(){
   if(IS_VIEW_MODE)return;
   /* 最初の受信前は保存しない（ブラウザに残った古いデータで上書きしないため） */
   if(!_synced){showToast('サーバーと接続中のため、まだ保存できません');return;}
-  const s={...state};delete s.dragData;
-  s.startDate=s.startDate?isoDate(s.startDate):null;
+  if(_inflight>0){_saveQueued=true;return;} /* 保存中なら終わってから続けて保存 */
+  state.meta={by:editorName(),at:Date.now()};
+  const sent=_snapData(state);
+  const base=_base;
   const rev=_localRev;
   _inflight++;
-  DB_REF.set(s)
-    .then(()=>{_inflight--;if(rev>_ackRev)_ackRev=rev;showAutoSave();})
-    .catch(e=>{_inflight--;console.warn("Firebase save error:",e);showToast('保存に失敗しました。通信状況を確認してください');});
+  DB_REF.transaction(cur=>{
+    if(cur===null||cur===undefined||!base)return sent;
+    return mergeData(base,sent,_normRemote(cur));
+  },(err,committed,snap)=>{
+    _inflight--;
+    if(err){
+      _saveQueued=false;
+      console.warn("Firebase save error:",err);
+      showToast('保存に失敗しました。通信状況を確認してください');
+      return;
+    }
+    if(!committed)return;
+    if(rev>_ackRev)_ackRev=rev;
+    showAutoSave();
+    if(_saveQueued){                 /* 保存中にさらに変更あり → 続けて保存 */
+      _saveQueued=false;_base=_normRemote(sent);saveToFirebase();
+    } else if(_localRev===rev){      /* 手元の変更はすべて保存済み → マージ結果を画面へ */
+      const merged=_normRemote(snap.val());
+      _base=merged;_applyRemote(merged);
+    } else {                         /* 次の保存が待機中 */
+      _base=_normRemote(sent);
+    }
+  },false);
+}
+
+/* 受信データを画面に反映（表示中の期間・週数は端末ごとなので変えない） */
+function _applyRemote(saved){
+  const keepStart=state.startDate,keepWeeks=state.weeks;
+  Object.assign(state,JSON.parse(JSON.stringify(saved)));
+  state.startDate=keepStart||(saved.startDate?toDate(saved.startDate):null);
+  state.weeks=keepWeeks;
+  state.dragData=null;
+  migratePcdate();
+  _undoBase=_undoSnap(); /* 他の人の変更は「元に戻す」の対象にしない */
+  renderTable();
+  renderMeta();
 }
 
 /* Firebaseからデータをリアルタイム受信 */
@@ -643,33 +817,134 @@ function listenFirebase(){
   _fbListening=true;
   DB_REF.on("value",snapshot=>{
     const first=!_synced;
-    /* 手元に未保存・保存中の変更があるときは上書きしない（D&Dした予定が戻る対策） */
+    /* 手元に未保存・保存中の変更があるときは上書きしない（保存時にマージする） */
     if(!first&&!IS_VIEW_MODE&&_hasUnsaved())return;
-    const saved=snapshot.val();
+    const raw=snapshot.val();
     if(first){_synced=true;_ackRev=_localRev;} /* 最初の受信はサーバーのデータを正とする */
-    if(!saved){if(first)_afterFirstSync();return;}
-    normalizeDates(saved);
-    for(const k in SYNC_EMPTY_DEFAULTS){
-      if(saved[k]===undefined||saved[k]===null)saved[k]=Array.isArray(SYNC_EMPTY_DEFAULTS[k])?[]:{};
-    }
-    /* startDate・weeksは各端末独自の表示設定なので上書きしない */
-    const _keepStart=state.startDate;
-    const _keepWeeks=state.weeks;
-    Object.assign(state,saved);
-    if(saved.startDate)state.startDate=toDate(saved.startDate);
-    else state.startDate=_keepStart;
-    state.weeks=_keepWeeks;
-    state.dragData=null;
-    migratePcdate();
-    renderTable();
+    if(!raw){_base=null;if(first)_afterFirstSync();return;}
+    const saved=_normRemote(raw);
+    _base=saved;
+    _applyRemote(saved);
     if(first)_afterFirstSync();
   },e=>console.warn("Firebase listen error:",e));
 }
 
-/* 最初の受信が済んでから自動削除チェック（古いデータで判定・保存しないため） */
+/* 最初の受信が済んでから自動削除チェック・毎日のバックアップ（古いデータで判定・保存しないため） */
 function _afterFirstSync(){
-  if(!IS_VIEW_MODE)setTimeout(checkAutoDelete,300);
+  if(IS_VIEW_MODE)return;
+  dailyBackup();
+  setTimeout(checkAutoDelete,300);
 }
+
+/* ===== 自動バックアップ（1日1回・14日分）===== */
+const BK_REF=db.ref('backups');
+const BK_KEEP_DAYS=14;
+let _bkDoneDay='';
+function dailyBackup(){
+  if(IS_VIEW_MODE||!_base)return;
+  const key=isoDate(TODAY);
+  if(_bkDoneDay===key)return;
+  _bkDoneDay=key;
+  const data=_snapData(_base);
+  BK_REF.child('index/'+key).once('value').then(s=>{
+    if(s.exists())return;
+    return BK_REF.child('data/'+key).set(data)
+      .then(()=>BK_REF.child('index/'+key).set({at:Date.now(),by:editorName(),count:(data.properties||[]).length}))
+      .then(pruneBackups);
+  }).catch(e=>console.warn('backup failed',e));
+}
+function pruneBackups(){
+  const cutoff=isoDate(addDays(TODAY,-BK_KEEP_DAYS));
+  return BK_REF.child('index').once('value').then(s=>{
+    const idx=s.val()||{};
+    Object.keys(idx).forEach(k=>{
+      if(k<cutoff){BK_REF.child('data/'+k).remove();BK_REF.child('index/'+k).remove();}
+    });
+  });
+}
+function loadBackupList(){
+  const el=document.getElementById('backupList');if(!el)return;
+  el.innerHTML='<div class="bk-empty">読み込み中…</div>';
+  BK_REF.child('index').once('value').then(s=>{
+    const idx=s.val()||{};
+    const keys=Object.keys(idx).sort().reverse();
+    if(!keys.length){el.innerHTML='<div class="bk-empty">まだバックアップがありません</div>';return;}
+    el.innerHTML=keys.map(k=>{
+      const d=toDate(k),it=idx[k]||{};
+      const dow='日月火水木金土'[d.getDay()];
+      return `<div class="bk-row"><span class="bk-date">${d.getMonth()+1}/${d.getDate()}（${dow}）</span><span class="bk-info">物件 ${it.count||0}件</span><button class="btn" onclick="restoreBackup('${k}')">この日に戻す</button></div>`;
+    }).join('');
+  }).catch(()=>{
+    el.innerHTML='<div class="bk-empty">バックアップを読み込めません（Firebaseのルール設定が必要です）</div>';
+  });
+}
+function restoreBackup(key){
+  const d=toDate(key);
+  if(!confirm(`${d.getMonth()+1}/${d.getDate()} 朝の時点のデータに戻します。\nそれ以降の変更は消えます（直後なら「元に戻す」で取り消せます）。\n\nよろしいですか？`))return;
+  BK_REF.child('data/'+key).once('value').then(s=>{
+    const v=s.val();
+    if(!v){showToast('バックアップが見つかりません');return;}
+    const data=_normRemote(v);
+    Object.keys(_undoSnap()).forEach(k=>{if(!(k in data))delete state[k];});
+    Object.assign(state,JSON.parse(JSON.stringify(data)));
+    migratePcdate();
+    renderTable();
+    scheduleAutoSave();
+    closeModal('settingsModal');
+    showToast(`${d.getMonth()+1}/${d.getDate()} のデータに戻しました`);
+  }).catch(()=>showToast('バックアップを読み込めませんでした'));
+}
+
+/* ===== 元に戻す（Ctrl+Z）===== */
+const UNDO_SKIP=['startDate','weeks','dragData','meta'];
+let _undoBase=null,_undoStack=[],_undoTimer=null;
+function _undoSnap(){
+  const o={};
+  for(const k in state){if(UNDO_SKIP.includes(k))continue;o[k]=state[k];}
+  return JSON.parse(JSON.stringify(o));
+}
+/* 変更があるたびに「変更前・変更後」を記録 */
+function _recordUndo(){
+  if(IS_VIEW_MODE)return;
+  const now=_undoSnap();
+  if(_undoBase&&!_eq(now,_undoBase)){
+    _undoStack.push({before:_undoBase,after:now});
+    if(_undoStack.length>30)_undoStack.shift();
+    showUndoBar();
+  }
+  _undoBase=now;
+}
+function undoLast(){
+  if(IS_VIEW_MODE)return;
+  const e=_undoStack.pop();
+  if(!e){showToast('元に戻せる変更はありません');return;}
+  const cur=_undoSnap();
+  /* その操作で変わった所だけ戻す（その後の他の変更は残す） */
+  const merged=mergeData(e.after,e.before,cur);
+  Object.keys(cur).forEach(k=>{if(!(k in merged))delete state[k];});
+  Object.assign(state,JSON.parse(JSON.stringify(merged)));
+  migratePcdate();
+  _undoBase=_undoSnap();
+  renderTable();
+  scheduleAutoSave();
+  hideUndoBar();
+  showToast('元に戻しました');
+}
+function showUndoBar(){
+  const el=document.getElementById('undoBar');if(!el)return;
+  el.classList.add('show');
+  clearTimeout(_undoTimer);_undoTimer=setTimeout(hideUndoBar,6000);
+}
+function hideUndoBar(){const el=document.getElementById('undoBar');if(el)el.classList.remove('show');}
+document.addEventListener('keydown',e=>{
+  if(IS_VIEW_MODE)return;
+  if(!(e.ctrlKey||e.metaKey)||e.shiftKey||e.altKey||String(e.key).toLowerCase()!=='z')return;
+  const t=e.target;
+  if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.tagName==='SELECT'||t.isContentEditable))return;
+  if(Array.from(document.querySelectorAll('.modal-overlay')).some(m=>m.style.display==='flex'))return;
+  e.preventDefault();
+  undoLast();
+});
 
 /* ===== 六曜（旧暦朔日テーブルによる正確計算）===== */
 /* 大安0 赤口1 先勝2 友引3 先負4 仏滅5  ← (旧暦月+旧暦日)%6 のインデックス */
@@ -844,17 +1119,18 @@ let state={
   salesStaff:['社長','専務','高尾','川口','泉(大)','篠原','勝原','泉(悟)'],
   pcStaff:['安松','泉'],
   pcFactories:['中国木材','朝間PC'],
-  webhookUrl:'',dragData:null,cellTexts:{},autoDeleteWeeks:3,
+  dragData:null,cellTexts:{},autoDeleteWeeks:3,
   holidays:[],
   rentalTexts:{}
 };
-const TODAY=new Date();TODAY.setHours(0,0,0,0);
+let TODAY=new Date();TODAY.setHours(0,0,0,0);
 
 /* ===== 保存 ===== */
 function saveData(){
   if(IS_VIEW_MODE)return;
   clearTimeout(_ast);
   _localRev++;
+  _recordUndo();
   /* LocalStorageにも保存（オフライン対応）*/
   const s={...state};delete s.dragData;
   s.startDate=s.startDate?isoDate(s.startDate):null;
@@ -875,6 +1151,7 @@ let _ast=null;
 function scheduleAutoSave(){
   if(IS_VIEW_MODE)return;
   _localRev++; /* 未保存の変更あり → 保存が終わるまで受信で上書きしない */
+  _recordUndo();
   clearTimeout(_ast);_ast=setTimeout(saveData,300);
 }
 function showAutoSave(){
@@ -887,20 +1164,12 @@ function _makeJSON(){
   return JSON.stringify(s,null,2);
 }
 
-/* エクスポート: 固定ファイル名 + Discord自動投稿 */
+/* エクスポート: 固定ファイル名 */
 function exportJSON(){
   const blob=new Blob([_makeJSON()],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download='PC搬入予定表.json';a.click();URL.revokeObjectURL(a.href);
-  /* Webhook設定済みならDiscordに自動投稿 */
-  if(state.webhookUrl){
-    fetch(state.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({content:'PC予定表　更新しました。\n追加、変更、訂正ある場合はこちらのチャンネルにUPしてください。\nご確認お願い致します。'})})
-      .then(r=>{if(r.ok)showToast('エクスポート＆Discord投稿しました');else showToast('エクスポート完了（Discord投稿失敗）');})  
-      .catch(()=>showToast('エクスポート完了（Discord投稿失敗）'));
-  } else {
-    showToast('PC搬入予定表.json をダウンロードしました');
-  }
+  showToast('PC搬入予定表.json をダウンロードしました');
 }
 
 /* アーカイブ: タイムスタンプ付きファイル名 */
@@ -1025,7 +1294,8 @@ function renderTable(){
     const latest=Math.max(...allDates);
     return latest<_pStart; /* 最後の予定が表示開始日より前 → 非表示 */
   }
-  const visibleProps=state.properties.filter(p=>!allBeforePeriod(p));
+  const _inPeriod=state.properties.filter(p=>!allBeforePeriod(p));
+  const visibleProps=_inPeriod.filter(matchFilter); /* 絞り込み */
 
   /* ===== レンタカー・その他予定 ===== */
   const rentalRows=['🚛','AM1','AM2','PM1','PM2'];
@@ -1042,12 +1312,12 @@ function renderTable(){
       const rFs=rTxt?calcCellFs(rTxt,44):10;
       const rCtJson=rTxt?JSON.stringify({type:'celltext',key:rKey,label:rTxt,propId:'rental'}).replace(/"/g,'&quot;'):'';
       html+=`<td class="rental-cell${dayCls(d)}" onclick="onRentalCellClick(event,'${rKey}')" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onRentalDrop(event,'${rKey}')">`;
-      if(rTxt) html+=`<span class="cell-text" draggable="true" ondragstart="onRentalTextDragStart(event,${rCtJson})" style="font-size:${rFs}px">${esc(rTxt)}</span>`;
+      if(rTxt) html+=`<span class="cell-text" draggable="true" ondragstart="onRentalTextDragStart(event,${rCtJson})" title="${esc(rTxt)}" style="font-size:${rFs}px">${esc(rTxt)}</span>`;
       html+='</td>';
     }
     html+='</tr>';
   }
-  html+=`<tr class="rental-sep"><td colspan="${ncol}"><span class="sec"><b>物件</b><span>${visibleProps.length}件</span></span></td></tr>`;
+  html+=`<tr class="rental-sep"><td colspan="${ncol}"><span class="sec"><b>物件</b><span>${visibleProps.length}件${filterActive()?'（全'+_inPeriod.length+'件）':''}</span></span></td></tr>`;
   html+='</tbody>';
 
   /* ===== 物件行 ===== */
@@ -1060,7 +1330,12 @@ function renderTable(){
     html+=`<tbody><tr><td colspan="${ncol}" style="padding:24px;text-align:center;color:#8e8e93">物件がありません。「新規物件」ボタンで追加してください。</td></tr></tbody>`;
   }
 
+  if(state.properties.length&&!visibleProps.length&&filterActive()){
+    html+=`<tbody><tr><td colspan="${ncol}" style="padding:24px;text-align:center;color:#8e8e93">条件に合う物件がありません。</td></tr></tbody>`;
+  }
+
   for(const prop of visibleProps){
+    const _w=propWarnings(prop); /* 日付の矛盾・休日の予定 */
     /* pcdates配列から最も早い日を取得 */
     const _allPc=(prop.pcdates&&prop.pcdates.length?prop.pcdates:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean).sort();
     const _earliestPc=_allPc[0]||'';
@@ -1095,13 +1370,15 @@ function renderTable(){
     const _ts='<span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'tsubo\',\'坪数\',\'text\')">'+esc(fmtTsubo(prop.tsubo)||'--')+'</span> / <span class="editable" onclick="openInlineEdit(event,'+prop.id+',\'floors\',\'階数\',\'floorsSelect\')">'+esc(prop.floors||'--')+'</span>';
 
     const noteHtml=prop.note
-      ?`※<span class="editable" onclick="openInlineEdit(event,${prop.id},'note','備考','text')" title="備考を編集">${esc(prop.note)}</span>`
+      ?`※<span class="editable" onclick="openInlineEdit(event,${prop.id},'note','備考','text')" title="${esc(prop.note)}（クリックで編集）">${esc(prop.note)}</span>`
       :`<span class="editable print-hide" style="color:#bbb" onclick="openInlineEdit(event,${prop.id},'note','備考','text')" title="備考を入力">※備考を入力</span>`;
 
     const infoCell=`<td class="prop-info-cell" rowspan="5"><div class="pi">
       <div class="pi-row">
-        <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)}" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="クリックで編集">${esc(nameFull)||'(物件名未入力)'}</div>
+        <div class="prop-name editable" style="font-size:${nameFs}px;background:${getPcNameBg(prop.pc)}" onclick="openInlineEdit(event,${prop.id},'name','物件名','text')" title="${esc(nameFull)}（クリックで編集）">${esc(nameFull)||'(物件名未入力)'}</div>
         ${factoryTag}
+        ${_w.msgs.length?`<span class="warn-ico no-print" title="${esc(_w.msgs.join('\n'))}">!</span>`:''}
+        <button class="prop-edit-btn no-print edit-only" onclick="openEditModal(${prop.id})" title="まとめて編集" aria-label="この物件をまとめて編集"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>
         <button class="prop-delete-btn no-print edit-only" onclick="deleteProp(${prop.id})" title="削除" aria-label="この物件を削除"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="prop-maker-line" style="font-size:${makerFs}px"><span class="pm-name">${_mn}${_ms}</span><span class="pm-size">${_ts}</span></div>
@@ -1125,7 +1402,8 @@ function renderTable(){
         for(const ev of events){
           const evJson=JSON.stringify(ev).replace(/"/g,'&quot;');
           const _bFs=calcCellFs(ev.label,44);
-          html+=`<span class="cell-event ${ev.cls}" draggable="true" ondragstart="onDragStart(event,${evJson})" ondblclick="onBadgeDblClick(event,${evJson})" title="ダブルクリックで編集・削除" style="font-size:${_bFs}px">${ev.label}</span>`;
+          const _bw=_w.dates.has(ds);
+          html+=`<span class="cell-event ${ev.cls}${_bw?' ev-warn':''}" draggable="true" ondragstart="onDragStart(event,${evJson})" ondblclick="onBadgeDblClick(event,${evJson})" title="${esc(ev.label)}${_bw?'（日付を確認してください）':''}\nダブルクリックで編集・削除" style="font-size:${_bFs}px">${ev.label}</span>`;
         }
         /* バッジと同じ内容のcellTextは表示しない（重複防止） */
         const _badgeLabels=events.map(ev=>ev.label);
@@ -1138,7 +1416,7 @@ function renderTable(){
         if(cellTxt&&!_isBadgeDup(cellTxt)){
           const ctJson=JSON.stringify({type:'celltext',key:cellKey,label:cellTxt,propId:prop.id}).replace(/"/g,'&quot;');
           const _ctFs=calcCellFs(cellTxt,44);
-          html+=`<span class="cell-text" draggable="true" ondragstart="onCellTextDragStart(event,${ctJson})" style="font-size:${_ctFs}px">${esc(cellTxt)}</span>`;
+          html+=`<span class="cell-text" draggable="true" ondragstart="onCellTextDragStart(event,${ctJson})" title="${esc(cellTxt)}" style="font-size:${_ctFs}px">${esc(cellTxt)}</span>`;
         }
         html+='</td>';
       }
@@ -1149,7 +1427,226 @@ function renderTable(){
 
   tbl.innerHTML=html;
   updateTime();
+  refreshFilterOptions();
+  renderMeta();
+  if(document.body.classList.contains('mobile-list'))renderMobileList();
 }
+
+/* ===== 日付の矛盾・休日の予定チェック ===== */
+function propWarnings(p){
+  const msgs=[],dates=new Set();
+  const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean);
+  if(p.dodai&&p.joto&&p.joto<p.dodai){msgs.push('上棟が土台敷きより前になっています');dates.add(p.joto);dates.add(p.dodai);}
+  if(p.dodai){
+    const late=pcs.filter(d=>d>p.dodai);
+    if(late.length){msgs.push('PC着が土台敷きより後になっています');late.forEach(d=>dates.add(d));}
+  }
+  const off=(ds,lbl)=>{
+    const d=toDate(ds);if(!d)return;
+    const why=d.getDay()===0?'日曜':isHoliday(d)?'祝日':isLongHoliday(d)?'長期休暇':'';
+    if(why){msgs.push(`${lbl} ${fmtShort(ds)} が${why}です`);dates.add(ds);}
+  };
+  pcs.forEach(d=>off(d,'PC着'));
+  if(p.dodai)off(p.dodai,'土台敷き');
+  if(p.joto)off(p.joto,'上棟');
+  return {msgs,dates};
+}
+
+/* ===== 絞り込み（PC担当・工場・名前検索）===== */
+const _flt={pc:'',factory:'',q:''};
+function filterActive(){return !!(_flt.pc||_flt.factory||_flt.q)}
+function matchFilter(p){
+  if(_flt.pc&&(p.pc||'')!==_flt.pc)return false;
+  if(_flt.factory&&(_flt.factory==='__unset__'?!!p.pcFactory:p.pcFactory!==_flt.factory))return false;
+  if(_flt.q){
+    const q=_flt.q.toLowerCase();
+    const hay=[p.name,p.makerName,p.makerStaff,p.note].map(x=>String(x||'').toLowerCase()).join(' ');
+    if(!hay.includes(q))return false;
+  }
+  return true;
+}
+function setFilter(){
+  _flt.pc=document.getElementById('flt_pc').value;
+  _flt.factory=document.getElementById('flt_factory').value;
+  _flt.q=document.getElementById('flt_q').value.trim();
+  renderTable();
+}
+function clearFilter(){
+  ['flt_pc','flt_factory','flt_q'].forEach(id=>document.getElementById(id).value='');
+  setFilter();
+}
+function refreshFilterOptions(){
+  const fill=(id,first,list,extra)=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    const cur=sel.value;
+    const pre=first.split('：')[0]+'：';
+    sel.innerHTML=`<option value="">${first}</option>`+list.map(v=>`<option value="${esc(v)}">${pre}${esc(v)}</option>`).join('')+(extra||'');
+    sel.value=cur;
+    if(sel.value!==cur){sel.value='';}
+    sel.dataset.v=sel.value;
+  };
+  fill('flt_pc','PC担当：全員',state.pcStaff||[]);
+  fill('flt_factory','工場：すべて',state.pcFactories||[],'<option value="__unset__">工場：未設定</option>');
+  const box=document.getElementById('fltBox');if(box)box.classList.toggle('active',filterActive());
+}
+
+/* ===== まとめて編集 ===== */
+function _setSel(id,val){
+  const sel=document.getElementById(id);
+  if(val&&!Array.from(sel.options).some(o=>o.value===val)){
+    const o=document.createElement('option');o.value=val;o.textContent=val;sel.appendChild(o);
+  }
+  sel.value=val||'';
+}
+function openEditModal(id){
+  const p=state.properties.find(x=>x.id===id);if(!p)return;
+  openAddModal();
+  _editPropId=id;
+  document.getElementById('addModalTitle').textContent='物件を編集';
+  document.getElementById('addModalSave').textContent='保存';
+  document.getElementById('f_name').value=p.name||'';
+  if(p.makerName&&state.makers.some(m=>m.name===p.makerName)){
+    document.getElementById('f_maker').value=p.makerName;
+    onMakerChange();
+  } else {
+    document.getElementById('f_makerFree').value=p.makerName||'';
+  }
+  _setSel('f_makerStaff',p.makerStaff||'');
+  document.getElementById('f_tsubo').value=p.tsubo||'';
+  _setSel('f_floors',p.floors||'');
+  const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean);
+  pcs.forEach((d,i)=>{
+    if(i>0)addPcdateField();
+    document.querySelectorAll('.f_pcdate_item')[i].value=d;
+  });
+  document.getElementById('f_dodai').value=p.dodai||'';
+  document.getElementById('f_joto').value=p.joto||'';
+  document.getElementById('f_finalCheck').value=p.finalCheck||'';
+  _setSel('f_sales',p.sales||'');
+  _setSel('f_pc',p.pc||'');
+  _setSel('f_pcFactory',p.pcFactory||'');
+  document.getElementById('f_note').value=p.note||'';
+}
+function saveEditedProperty(name){
+  const p=state.properties.find(x=>x.id===_editPropId);
+  if(!p){closeModal('addModal');_editPropId=null;return;}
+  const old={pcdates:(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean),dodai:p.dodai||'',joto:p.joto||''};
+  const makerSel=document.getElementById('f_maker').value;
+  const makerFree=document.getElementById('f_makerFree').value.trim();
+  p.name=name;
+  p.makerName=makerSel||makerFree;
+  p.makerStaff=document.getElementById('f_makerStaff').value;
+  p.tsubo=document.getElementById('f_tsubo').value;
+  p.floors=document.getElementById('f_floors').value;
+  p.pcdates=Array.from(new Set(Array.from(document.querySelectorAll('.f_pcdate_item')).map(i=>i.value).filter(Boolean))).sort();
+  p.pcdate=p.pcdates[0]||'';
+  p.finalCheck=document.getElementById('f_finalCheck').value;
+  p.dodai=document.getElementById('f_dodai').value;
+  p.joto=document.getElementById('f_joto').value;
+  p.sales=document.getElementById('f_sales').value;
+  p.pc=document.getElementById('f_pc').value;
+  p.note=document.getElementById('f_note').value;
+  p.pcFactory=document.getElementById('f_pcFactory').value;
+  /* 日付が変わった予定はセルのラベルも移動（インライン編集と同じ扱い） */
+  [['dodai','土台敷き'],['joto','上棟']].forEach(([f,lbl])=>{
+    if(old[f]===p[f])return;
+    if(old[f]&&state.cellTexts[`${p.id}_${old[f]}_koudo`]===lbl)delete state.cellTexts[`${p.id}_${old[f]}_koudo`];
+    if(p[f])state.cellTexts[`${p.id}_${p[f]}_koudo`]=lbl;
+  });
+  if(old.pcdates.join(',')!==p.pcdates.join(',')){
+    Object.keys(state.cellTexts).forEach(k=>{
+      if(k.startsWith(p.id+'_')&&k.endsWith('_koudo')&&String(state.cellTexts[k]).startsWith('PC着'))delete state.cellTexts[k];
+    });
+    const tot=p.pcdates.length;
+    p.pcdates.forEach((d,i)=>{state.cellTexts[`${p.id}_${d}_koudo`]=tot===1?'PC着':('PC着'+(i+1));});
+  }
+  _editPropId=null;
+  closeModal('addModal');
+  renderTable();
+  scheduleAutoSave();
+}
+
+/* ===== 工場別一覧：前回コピー時からの新規/変更を自動判定 ===== */
+let _factoryShown=[];
+function factorySig(p){
+  const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean).sort();
+  return pcs.join(',')+'|'+(p.dodai||'')+'|'+(p.joto||'');
+}
+function factoryStatus(p){
+  if(p.pcStatus==='なし')return{s:'',auto:false};
+  if(p.pcStatus)return{s:p.pcStatus,auto:false};
+  if(!state.factorySentAt)return{s:'',auto:false};
+  const prev=(state.factorySent||{})[p.id];
+  if(prev===undefined)return{s:'新規',auto:true};
+  return{s:prev!==factorySig(p)?'変更':'',auto:true};
+}
+function markFactorySent(){
+  if(IS_VIEW_MODE)return;
+  if(!state.factorySent)state.factorySent={};
+  _factoryShown.forEach(id=>{
+    const p=state.properties.find(x=>x.id===id);if(!p)return;
+    state.factorySent[id]=factorySig(p);
+    if(p.pcStatus)p.pcStatus='';
+  });
+  state.factorySentAt=Date.now();
+  scheduleAutoSave();
+}
+
+/* ===== スマホ：今後の予定を一覧表示 ===== */
+const MOBILE_KEY='pc_schedule_mobile_table';
+function _isNarrow(){return window.matchMedia('(max-width:767px)').matches}
+function applyMobileMode(){
+  let forceTable=false;
+  try{forceTable=sessionStorage.getItem(MOBILE_KEY)==='1'}catch(e){}
+  const on=_isNarrow()&&!forceTable;
+  document.body.classList.toggle('mobile-list',on);
+  const b=document.getElementById('mobileToggle');if(b)b.textContent=on?'表で見る':'一覧で見る';
+  if(on)renderMobileList();
+}
+function toggleMobileView(){
+  const on=document.body.classList.contains('mobile-list');
+  try{sessionStorage.setItem(MOBILE_KEY,on?'1':'0')}catch(e){}
+  applyMobileMode();
+  renderTable();
+}
+function renderMobileList(){
+  const el=document.getElementById('mobileList');if(!el)return;
+  const DAYS=28;
+  let html=`<div class="ml-note">今日から${DAYS/7}週間の予定（スマホでは一覧表示です。編集はパソコンから）</div>`;
+  let any=false;
+  const isDup=(txt,labels)=>labels.includes(txt)||((txt==='PC着'||/^PC着\d+$/.test(txt))&&labels.some(l=>l==='PC着'||/^PC着\d+$/.test(l)));
+  for(let i=0;i<DAYS;i++){
+    const d=addDays(TODAY,i),ds=isoDate(d);
+    const items=[];
+    for(let ri=0;ri<5;ri++){
+      const t=state.rentalTexts[`${ri}_${ds}`];
+      if(t)items.push(`<div class="ml-item"><span class="cell-text">${esc(t)}</span><span class="ml-sub">レンタカー・その他</span></div>`);
+    }
+    state.properties.forEach(p=>{
+      const evs=getEventsOnDate(p,ds,'koudo');
+      const labels=evs.map(e=>e.label);
+      const sub=esc((p.makerName||'')+(p.pc?'　PC '+p.pc:''));
+      evs.forEach(ev=>items.push(`<div class="ml-item"><span class="cell-event ${ev.cls}">${esc(ev.label)}</span><span><span class="ml-name">${esc(p.name)}</span><br><span class="ml-sub">${sub}</span></span></div>`));
+      ['koudo','am1','am2','pm1','pm2'].forEach(rk=>{
+        const t=state.cellTexts[`${p.id}_${ds}_${rk}`];
+        if(!t||(rk==='koudo'&&isDup(t,labels)))return;
+        items.push(`<div class="ml-item"><span class="cell-text">${esc(t)}</span><span><span class="ml-name">${esc(p.name)}</span><br><span class="ml-sub">${rk==='koudo'?'工程':rk.toUpperCase()}　${sub}</span></span></div>`);
+      });
+    });
+    if(!items.length)continue;
+    any=true;
+    const dow='日月火水木金土'[d.getDay()];
+    const hol=isHoliday(d)?holidayName(d):(isLongHoliday(d)?'長期休暇':'');
+    html+=`<div class="ml-day"><div class="ml-dh${d.getDay()===0||isHoliday(d)?' sun':''}">${d.getMonth()+1}/${d.getDate()}（${dow}）${i===0?'<span class="today">今日</span>':''}${hol?`<span class="hol">${esc(hol)}</span>`:''}</div>${items.join('')}</div>`;
+  }
+  if(!any)html+='<div class="ml-empty">予定はありません</div>';
+  el.innerHTML=html;
+}
+window.addEventListener('resize',()=>{
+  const was=document.body.classList.contains('mobile-list');
+  applyMobileMode();
+  if(was&&!document.body.classList.contains('mobile-list'))renderTable();
+});
 
 function getEventsOnDate(prop,ds,rowKey){
   if(rowKey!=='koudo')return[];
@@ -1577,11 +2074,18 @@ function sortByPcDate(){
 function deleteProp(id){
   if(!confirm('この物件を削除しますか？'))return;
   state.properties=state.properties.filter(p=>p.id!==id);
+  /* この物件のセル入力・工場連絡の記録も削除 */
+  Object.keys(state.cellTexts).forEach(k=>{if(k.startsWith(id+'_'))delete state.cellTexts[k];});
+  if(state.factorySent)delete state.factorySent[id];
   renderTable();scheduleAutoSave();
 }
 
 /* ===== 新規物件 ===== */
+let _editPropId=null; /* まとめて編集中の物件ID（新規はnull） */
 function openAddModal(){
+  _editPropId=null;
+  document.getElementById('addModalTitle').textContent='新規物件登録';
+  document.getElementById('addModalSave').textContent='登録';
   ['f_name','f_tsubo','f_finalCheck','f_dodai','f_joto','f_note','f_makerFree']
     .forEach(id=>document.getElementById(id).value='');
   document.getElementById('f_pcFactory').value='';
@@ -1621,6 +2125,7 @@ function populatePcSelect(){
 function saveProperty(){
   const name=document.getElementById('f_name').value.trim();
   if(!name){alert('物件名を入力してください');return}
+  if(_editPropId!==null){saveEditedProperty(name);return;}
   const _makerSel=document.getElementById('f_maker').value;
   const _makerFree=document.getElementById('f_makerFree').value.trim();
   const _makerName=_makerSel||_makerFree;
@@ -1774,6 +2279,7 @@ function checkAutoDelete(){
       Object.keys(state.cellTexts).forEach(k=>{
         if(k.startsWith(id+'_'))delete state.cellTexts[k];
       });
+      if(state.factorySent)delete state.factorySent[id];
     });
     renderTable();
     scheduleAutoSave();
@@ -1835,6 +2341,7 @@ function renderFactoryModal(){
     const props=state.properties.filter(p=>p.pcFactory===filter&&isRelevant(p));
     groups=[{name:filter,props}];
   }
+  _factoryShown=[].concat(...groups.map(g=>g.props.map(p=>p.id)));
   area.innerHTML=groups.map(g=>buildFactoryTable(g)).join('');
 }
 
@@ -1866,11 +2373,11 @@ function buildFactoryTable(g){
       const pcBg=p.pc==='安松'?'background:#fef9e3;color:#7d6608':'background:#e3f0fa;color:#1a5276';
       html+=`<tr>
         ${(()=>{
-          const _s=p.pcStatus||'';
+          const _st=factoryStatus(p);
+          const _s=_st.s;
           const _sc=_s==='新規'?'background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7':_s==='変更'?'background:#fff3e0;color:#e65100;border:1px solid #ffb74d':'background:#f5f5f5;color:#bbb;border:1px solid #ddd';
-          const _cycle=['','新規','変更'];
-          const _nextIdx=(_cycle.indexOf(_s)+1)%_cycle.length;
-          return `<td style="padding:4px 6px;border:0.5px solid #ddd;text-align:center;width:44px;min-width:44px"><span style="font-size:11px;font-weight:700;padding:2px 6px;border-radius:3px;cursor:pointer;white-space:nowrap;display:inline-block;${_sc}" onclick="cycleStatus('${p.id}')" title='クリックで切り替え'>${_s||'―'}</span></td>`;
+          const _tip=_st.auto?'前回コピー時から自動判定（クリックで手動に切り替え）':'クリックで切り替え';
+          return `<td style="padding:4px 6px;border:0.5px solid #ddd;text-align:center;width:44px;min-width:44px"><span style="font-size:11px;font-weight:700;padding:2px 6px;border-radius:3px;cursor:pointer;white-space:nowrap;display:inline-block;${_sc}" onclick="cycleStatus('${p.id}')" title='${_tip}'>${_s||'―'}</span></td>`;
         })()}
         <td style="padding:3px 6px;border:0.5px solid #ddd">
           <div style="font-weight:700;font-size:14px;color:#222">${esc(p.name||'')} </div>
@@ -1893,9 +2400,10 @@ function buildFactoryTable(g){
 function cycleStatus(propId){
   const prop=state.properties.find(p=>String(p.id)===String(propId));
   if(!prop)return;
-  const cycle=['','新規','変更'];
+  /* ''=自動判定（コピー記録がないときは「なし」） → 新規 → 変更 → なし → 自動 */
+  const cycle=state.factorySentAt?['','新規','変更','なし']:['','新規','変更'];
   const cur=prop.pcStatus||'';
-  const next=cycle[(cycle.indexOf(cur)+1)%cycle.length];
+  const next=cycle[(Math.max(0,cycle.indexOf(cur))+1)%cycle.length];
   prop.pcStatus=next;
   scheduleAutoSave();
   renderFactoryModal();
@@ -1916,6 +2424,7 @@ function copyFactoryHTML(){
     el.style.padding='3px 6px';
   });
   const html='<meta charset="UTF-8">'+clone.innerHTML;
+  markFactorySent(); /* 今回コピーした内容を次回の新規/変更判定の基準にする */
   /* Clipboard API（HTML対応）*/
   if(navigator.clipboard&&window.ClipboardItem){
     const blob=new Blob([html],{type:'text/html'});
@@ -1965,7 +2474,7 @@ function openSettings(){
   renderMakerList();renderStaffLists();renderFactoryList();renderHolidayList();
   const sel=document.getElementById('autoDeleteWeeksSelect');
   if(sel) sel.value=String(state.autoDeleteWeeks||3);
-  const wh=document.getElementById('webhookUrl');if(wh)wh.value=state.webhookUrl||'';
+  renderEditorName();loadBackupList();
   document.getElementById('settingsModal').style.display='flex';
 }
 function renderMakerList(){
@@ -2039,23 +2548,6 @@ function saveMakerEdit(){
   closeModal('makerEditModal');renderMakerList();scheduleAutoSave();
 }
 
-/* ===== Discord ===== */
-function openDiscord(){
-  const wh=document.getElementById('webhookUrl');if(wh)wh.value=state.webhookUrl||'';
-  document.getElementById('discordModal').style.display='flex';
-}
-function postDiscord(){
-  const url=document.getElementById('webhookUrl').value.trim();
-  if(!url){alert('Webhook URLを入力してください');return}
-  if(!url.startsWith('https://discord.com/api/webhooks/')){alert('正しいDiscord Webhook URLを入力してください');return}
-  state.webhookUrl=url;
-  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({content:'PC予定表　更新しました。\n追加、変更、訂正ある場合はこちらのチャンネルにUPしてください。\nご確認お願い致します。'})})
-    .then(r=>{if(r.ok){alert('Discordに投稿しました！');closeModal('discordModal')}
-              else alert('投稿失敗。Webhook URLを確認してください')})
-    .catch(()=>alert('投稿失敗。Webhook URLを確認してください'));
-}
-
 /* ===== 印刷 ===== */
 function printSchedule(){
   const dates=getDates();
@@ -2075,6 +2567,13 @@ function closeModal(id){document.getElementById(id).style.display='none'}
 /* モーダル外クリックで閉じない（誤操作防止） */
 function updateTime(){
   const now=new Date();
+  /* 日付が変わったら「今日」を更新（開きっぱなし対策） */
+  const t0=new Date(now);t0.setHours(0,0,0,0);
+  if(t0.getTime()!==TODAY.getTime()){
+    TODAY=t0;
+    renderTable();
+    if(!IS_VIEW_MODE&&_synced){checkAutoDelete();dailyBackup();}
+  }
   const el=document.getElementById('headerTime');
   if(el)el.textContent=`${now.getFullYear()}/${zp(now.getMonth()+1)}/${zp(now.getDate())} ${zp(now.getHours())}:${zp(now.getMinutes())}`;
 }
@@ -2084,24 +2583,8 @@ const IS_VIEW_MODE=location.search.includes('view');
 
 async function init(){
   if(IS_VIEW_MODE){
-    /* 閲覧モード: GitHubのJSONを自動読み込み */
+    /* 閲覧モード: Firebaseのデータをそのまま表示（リアルタイム反映） */
     document.body.classList.add('view-mode');
-    try{
-      /* 同じリポジトリのPC搬入予定表.jsonを取得 */
-      const base=location.href.replace(/\/[^/]*$|\?.*$/,'');
-      const res=await fetch(base+'/PC搬入予定表.json?t='+Date.now());
-      if(res.ok){
-        const saved=await res.json();
-        if(saved.startDate)saved.startDate=toDate(saved.startDate);
-        Object.assign(state,saved);state.dragData=null;
-        migratePcdate();
-        showToast('最新データを読み込みました');
-      } else {
-        showToast('データ読み込み失敗。管理者にご連絡ください。');
-      }
-    }catch(e){
-      showToast('データ読み込み失敗。管理者にご連絡ください。');
-    }
     /* 閲覧モードもFirebaseをリッスンしてリアルタイム反映 */
     listenFirebase();
     /* 閲覧モードではD&D・インライン編集・セル入力を無効化 */
@@ -2117,6 +2600,7 @@ async function init(){
   }
   if(!state.startDate)initStart();
   renderTable();
+  applyMobileMode();
   setWeeks(state.weeks||3);
   setInterval(updateTime,30000);
   fetchHolidays();
