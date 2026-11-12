@@ -527,26 +527,30 @@ const db=firebase.database();
 const DB_REF=db.ref("schedule");
 let _fbListening=false;
 
+/* ===== 同期の状態 =====
+   _localRev : 手元で変更した回数（変更のたびに+1）
+   _ackRev   : Firebaseへの保存が完了した変更の番号
+   _inflight : 保存中の件数
+   _synced   : Firebaseからの最初の受信が済んだか
+   未保存・保存中の変更があるあいだは、受信したデータで画面を上書きしない */
+let _localRev=0,_ackRev=0,_inflight=0,_synced=false;
+function _hasUnsaved(){return _localRev!==_ackRev||_inflight>0}
+
+/* Firebaseは空のリスト・空のオブジェクトを保存しないため、受信時に無い項目は空で補う */
+const SYNC_EMPTY_DEFAULTS={properties:[],cellTexts:{},rentalTexts:{},holidays:[]};
+
 /* Firebaseにデータを保存 */
-let _fbSaving=false;
 function saveToFirebase(){
   if(IS_VIEW_MODE)return;
+  /* 最初の受信前は保存しない（ブラウザに残った古いデータで上書きしないため） */
+  if(!_synced){showToast('サーバーと接続中のため、まだ保存できません');return;}
   const s={...state};delete s.dragData;
   s.startDate=s.startDate?isoDate(s.startDate):null;
-  /* リスナーを一時停止してから保存 */
-  _fbSaving=true;
-  DB_REF.off("value");
+  const rev=_localRev;
+  _inflight++;
   DB_REF.set(s)
-    .then(()=>{
-      showAutoSave();
-      /* 保存完了後2秒待ってからリスナー再開 */
-      setTimeout(()=>{
-        _fbSaving=false;
-        _fbListening=false;
-        listenFirebase();
-      },2000);
-    })
-    .catch(e=>{console.warn("Firebase save error:",e);_fbSaving=false;_fbListening=false;listenFirebase();});
+    .then(()=>{_inflight--;if(rev>_ackRev)_ackRev=rev;showAutoSave();})
+    .catch(e=>{_inflight--;console.warn("Firebase save error:",e);showToast('保存に失敗しました。通信状況を確認してください');});
 }
 
 /* Firebaseからデータをリアルタイム受信 */
@@ -554,9 +558,16 @@ function listenFirebase(){
   if(_fbListening)return;
   _fbListening=true;
   DB_REF.on("value",snapshot=>{
-    if(_fbSaving)return; /* 自分が保存中は無視 */
+    const first=!_synced;
+    /* 手元に未保存・保存中の変更があるときは上書きしない（D&Dした予定が戻る対策） */
+    if(!first&&!IS_VIEW_MODE&&_hasUnsaved())return;
     const saved=snapshot.val();
-    if(!saved)return;
+    if(first){_synced=true;_ackRev=_localRev;} /* 最初の受信はサーバーのデータを正とする */
+    if(!saved){if(first)_afterFirstSync();return;}
+    normalizeDates(saved);
+    for(const k in SYNC_EMPTY_DEFAULTS){
+      if(saved[k]===undefined||saved[k]===null)saved[k]=Array.isArray(SYNC_EMPTY_DEFAULTS[k])?[]:{};
+    }
     /* startDate・weeksは各端末独自の表示設定なので上書きしない */
     const _keepStart=state.startDate;
     const _keepWeeks=state.weeks;
@@ -567,7 +578,13 @@ function listenFirebase(){
     state.dragData=null;
     migratePcdate();
     renderTable();
+    if(first)_afterFirstSync();
   },e=>console.warn("Firebase listen error:",e));
+}
+
+/* 最初の受信が済んでから自動削除チェック（古いデータで判定・保存しないため） */
+function _afterFirstSync(){
+  if(!IS_VIEW_MODE)setTimeout(checkAutoDelete,300);
 }
 
 /* ===== 六曜（旧暦朔日テーブルによる正確計算）===== */
@@ -608,7 +625,7 @@ function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r}
 function isoDate(d){return`${d.getFullYear()}-${zp(d.getMonth()+1)}-${zp(d.getDate())}`}
 function toDate(s){
   if(!s)return null;if(s instanceof Date)return s;
-  const p=String(s).split('-');if(p.length!==3)return null;
+  const p=String(s).trim().split(/[-\/.]/);if(p.length!==3)return null;
   return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -654,22 +671,30 @@ function addPcdateField(){
   wrap.appendChild(inp);
 }
 
-/* 日付をYYYY-MM-DD形式（ハイフン）に正規化 */
+/* 日付をYYYY-MM-DD形式（ゼロ埋め・ハイフン）に正規化
+   2026/8/24・2026-8-24 → 2026-08-24。文字列比較で並べ替えるため必ずゼロ埋めする */
 function normDate(d){
   if(!d)return d;
-  /* YYYY/MM/DD → YYYY-MM-DD に変換 */
-  return String(d).replace(/\//g,'-');
+  const m=String(d).trim().match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+  if(!m)return d;
+  return m[1]+'-'+zp(m[2])+'-'+zp(m[3]);
 }
 function normalizeDates(saved){
-  if(!saved||!saved.properties)return saved;
-  saved.properties=saved.properties.map(p=>({
-    ...p,
-    pcdate:normDate(p.pcdate),
-    pcdates:(p.pcdates||[]).map(normDate),
-    dodai:normDate(p.dodai),
-    joto:normDate(p.joto),
-    finalCheck:normDate(p.finalCheck),
-  }));
+  if(!saved)return saved;
+  if(saved.properties&&!Array.isArray(saved.properties))saved.properties=Object.values(saved.properties);
+  if(saved.properties){
+    saved.properties=saved.properties.filter(Boolean).map(p=>({
+      ...p,
+      pcdate:normDate(p.pcdate),
+      pcdates:(p.pcdates||[]).map(normDate).filter(Boolean),
+      dodai:normDate(p.dodai),
+      joto:normDate(p.joto),
+      finalCheck:normDate(p.finalCheck),
+    }));
+  }
+  if(Array.isArray(saved.holidays)){
+    saved.holidays=saved.holidays.filter(Boolean).map(h=>({...h,start:normDate(h.start),end:normDate(h.end)}));
+  }
   return saved;
 }
 
@@ -744,6 +769,8 @@ const TODAY=new Date();TODAY.setHours(0,0,0,0);
 /* ===== 保存 ===== */
 function saveData(){
   if(IS_VIEW_MODE)return;
+  clearTimeout(_ast);
+  _localRev++;
   /* LocalStorageにも保存（オフライン対応）*/
   const s={...state};delete s.dragData;
   s.startDate=s.startDate?isoDate(s.startDate):null;
@@ -763,7 +790,8 @@ function loadData(){
 let _ast=null;
 function scheduleAutoSave(){
   if(IS_VIEW_MODE)return;
-  clearTimeout(_ast);_ast=setTimeout(saveData,2000);
+  _localRev++; /* 未保存の変更あり → 保存が終わるまで受信で上書きしない */
+  clearTimeout(_ast);_ast=setTimeout(saveData,300);
 }
 function showAutoSave(){
   const el=document.getElementById('autoSaveInd');
@@ -1190,8 +1218,10 @@ function closeInlineEdit(save){
 }
 
 /* ===== D&D ===== */
+/* ドラッグ中の予定の情報。stateに置くと同期の受信で消えるため別に持つ */
+let _drag=null;
 function onDragStart(e,ev){
-  state.dragData=ev;setTimeout(()=>e.target.classList.add('dragging'),0);
+  _drag=ev;setTimeout(()=>e.target.classList.add('dragging'),0);
   e.dataTransfer.effectAllowed='move';
 }
 function onDragOver(e){e.preventDefault();e.currentTarget.classList.add('drag-over')}
@@ -1202,7 +1232,7 @@ function onDrop(e){
   const td=e.currentTarget;
   const propId=parseInt(td.dataset.propid);
   const newDate=td.dataset.date;
-  const ev=state.dragData;
+  const ev=_drag;
   if(!ev||!propId||!newDate)return;
   const prop=state.properties.find(p=>p.id===propId);if(!prop)return;
   /* cellText（AM1等）のD&D移動 */
@@ -1212,7 +1242,7 @@ function onDrop(e){
       delete state.cellTexts[ev.key];
       state.cellTexts[toKey]=ev.label;
     }
-    state.dragData=null;
+    _drag=null;
     document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
     renderTable();scheduleAutoSave();
     return;
@@ -1224,7 +1254,8 @@ function onDrop(e){
   const _dtMap={dodai:'dodai',joto:'joto'};
   /* PC着は特別処理 */
   if(ev.type==='pc'&&!ev.isCellText){
-    const _pcs=(prop.pcdates&&prop.pcdates.length?[...prop.pcdates]:(prop.pcdate?[prop.pcdate]:[]));
+    /* 空の日付を除いてから番号を合わせる（表示側 getEventsOnDate と同じ数え方） */
+    const _pcs=(prop.pcdates&&prop.pcdates.length?[...prop.pcdates]:(prop.pcdate?[prop.pcdate]:[])).filter(Boolean);
     const _idx=typeof ev.pcIdx==='number'?ev.pcIdx:0;
     const _old=_pcs[_idx];
     _pcs[_idx]=newDate;
@@ -1235,7 +1266,7 @@ function onDrop(e){
     if(_old){const _ok=prop.id+'_'+_old+'_koudo';const _olbl=_pcTotal===1?'PC着':('PC着'+(_idx+1));if(state.cellTexts[_ok]&&state.cellTexts[_ok].startsWith('PC着'))delete state.cellTexts[_ok];}
     const _nk=prop.id+'_'+newDate+'_koudo';
     state.cellTexts[_nk]=_pcTotal===1?'PC着':('PC着'+(_idx+1));
-    state.dragData=null;
+    _drag=null;
     document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
     renderTable();scheduleAutoSave();
     return;
@@ -1254,11 +1285,12 @@ function onDrop(e){
     const _newKey=`${prop.id}_${newDate}_koudo`;
     state.cellTexts[_newKey]=_lblMap[ev.type];
   }
-  state.dragData=null;
+  _drag=null;
   document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
   renderTable();scheduleAutoSave();
 }
 document.addEventListener('dragend',()=>{
+  _drag=null; /* ドロップせずに終わったドラッグの情報を残さない */
   document.querySelectorAll('.dragging').forEach(el=>el.classList.remove('dragging'));
   document.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over'));
 });
@@ -1333,7 +1365,7 @@ function onBadgeDblClick(e,ev){
 
 /* ===== cellText D&D ===== */
 function onCellTextDragStart(e,ev){
-  state.dragData={...ev,isCellText:true};
+  _drag={...ev,isCellText:true};
   setTimeout(()=>e.target.classList.add('dragging'),0);
   e.dataTransfer.effectAllowed='move';
 }
@@ -1416,35 +1448,38 @@ function onCellClick(e,cellKey){
 /* ===== ソート ===== */
 function sortByPcDate(){
   /* PC着指定無し → PC着日早い順 → 土台敷き早い順 → 上棟日早い順 */
+  /* 比較はゼロ埋めした日付で行う（2026-8-24 と 2026-08-24 の混在で順番が狂わないように） */
   function earliestPc(p){
-    const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean).sort();
+    const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean).map(normDate).sort();
     return pcs[0]||'';
   }
   state.properties.sort((a,b)=>{
     const pa=earliestPc(a),pb=earliestPc(b);
+    const da=normDate(a.dodai)||'',db=normDate(b.dodai)||'';
+    const ja=normDate(a.joto)||'',jb=normDate(b.joto)||'';
     const ea=!pa,eb=!pb;
     /* 全日程空欄（PC着・土台・上棟すべてなし）は最後 */
-    const allEmptyA=ea&&!a.dodai&&!a.joto;
-    const allEmptyB=eb&&!b.dodai&&!b.joto;
+    const allEmptyA=ea&&!da&&!ja;
+    const allEmptyB=eb&&!db&&!jb;
     if(allEmptyA&&allEmptyB) return 0;
     if(allEmptyA) return 1;   /* aを後ろに */
     if(allEmptyB) return -1;  /* bを後ろに */
     if(ea&&eb){
       /* PC着なし・土台or上棟あり → 土台敷き順 → 上棟順 */
-      if(a.dodai&&b.dodai) return a.dodai.localeCompare(b.dodai);
-      if(a.dodai)return -1;if(b.dodai)return 1;
-      if(a.joto&&b.joto) return a.joto.localeCompare(b.joto);
-      if(a.joto)return -1;if(b.joto)return 1;
+      if(da&&db) return da.localeCompare(db);
+      if(da)return -1;if(db)return 1;
+      if(ja&&jb) return ja.localeCompare(jb);
+      if(ja)return -1;if(jb)return 1;
       return 0;
     }
     if(ea)return -1;if(eb)return 1;
     /* PC着日順 → 土台敷き順 → 上棟順 */
     const pc=pa.localeCompare(pb);
     if(pc!==0)return pc;
-    if(a.dodai&&b.dodai){const d=a.dodai.localeCompare(b.dodai);if(d!==0)return d;}
-    else if(a.dodai)return -1;else if(b.dodai)return 1;
-    if(a.joto&&b.joto)return a.joto.localeCompare(b.joto);
-    if(a.joto)return -1;if(b.joto)return 1;
+    if(da&&db){const d=da.localeCompare(db);if(d!==0)return d;}
+    else if(da)return -1;else if(db)return 1;
+    if(ja&&jb)return ja.localeCompare(jb);
+    if(ja)return -1;if(jb)return 1;
     return 0;
   });
   renderTable();
@@ -1603,7 +1638,7 @@ function onRentalCellClick(e,rKey){
 }
 
 function onRentalTextDragStart(e,ev){
-  state.dragData={...ev,isRentalText:true};
+  _drag={...ev,isRentalText:true};
   setTimeout(()=>e.target.classList.add("dragging"),0);
   e.dataTransfer.effectAllowed="move";
 }
@@ -1611,13 +1646,13 @@ function onRentalTextDragStart(e,ev){
 function onRentalDrop(e,toKey){
   e.preventDefault();
   e.currentTarget.classList.remove("drag-over");
-  const ev=state.dragData;
+  const ev=_drag;
   if(!ev||!ev.isRentalText)return;
   if(ev.key!==toKey){
     delete state.rentalTexts[ev.key];
     state.rentalTexts[toKey]=ev.label;
   }
-  state.dragData=null;
+  _drag=null;
   document.querySelectorAll(".dragging").forEach(el=>el.classList.remove("dragging"));
   renderTable();scheduleAutoSave();
 }
@@ -1998,8 +2033,9 @@ async function init(){
   setWeeks(state.weeks||3);
   setInterval(updateTime,30000);
   fetchHolidays();
-  /* 起動時に自動削除チェック（編集モードのみ）*/
-  if(!IS_VIEW_MODE) setTimeout(checkAutoDelete,2000);
+  /* 自動削除チェックはFirebaseの最初の受信後に行う（_afterFirstSync） */
+  /* 10秒たってもサーバーとつながらない場合は知らせる（編集モードのみ）*/
+  if(!IS_VIEW_MODE) setTimeout(()=>{if(!_synced)showToast('サーバーに接続できません。変更は保存されません');},10000);
 }
 init();
 </script>
