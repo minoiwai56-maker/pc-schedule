@@ -234,6 +234,7 @@ tr.r-sub>td{height:20px}
   .row-label,.rental-row-label{background:#f4f6f8!important;color:#000!important;font-size:9.5px;border-right:2px solid #333!important}
   tr.r-koudo>td{height:24px}
   tr.r-sub>td{height:17px}
+  .fh-label{background:#eef5fa!important;color:#000!important;border-right:2px solid #333!important}
   .prop-info-cell{padding:3px 8px 3px 9px!important;border-right:1px solid #cfcfcf!important}
   .pi{gap:1px}
   .prop-name{font-size:14px!important;color:#000}
@@ -263,6 +264,14 @@ body.view-mode .edit-only{display:none!important}
 body.view-mode .view-badge{display:inline-flex!important}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#333;color:#fff;padding:8px 20px;border-radius:20px;font-size:12px;opacity:0;transition:opacity .3s,transform .3s;z-index:2000;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* PC工場の休み行 */
+.fh-label{position:sticky;left:0;z-index:10;background:var(--panel)!important;font-size:11px;font-weight:600;color:var(--tx2);text-align:left;padding:0 10px!important;white-space:nowrap;border-right:1px solid var(--line)!important}
+.fh-label .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.fh-cell{white-space:nowrap;text-align:left;font-size:10.5px;color:var(--tx2)}
+.fh-cell.fh-on{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--fc) 26%,#fff) 0 5px,color-mix(in srgb,var(--fc) 14%,#fff) 5px 10px)!important}
+.fh-name{position:relative;z-index:2;padding-left:4px;font-weight:600;color:var(--tx)}
+.fh-group{display:flex;align-items:center;gap:8px;margin:8px 0 3px;font-size:12px;font-weight:600}
+.fh-group label{display:inline-flex;align-items:center;gap:4px;font-weight:500;font-size:11px;color:#555;cursor:pointer}
 /* 最終更新 */
 .last-update{font-size:11.5px;color:var(--tx3);white-space:nowrap;margin-left:auto}
 .last-update+.lg-filter{margin-left:6px}
@@ -342,7 +351,6 @@ body.view-mode .view-badge{display:inline-flex!important}
   <button class="btn" onclick="printSchedule()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2M6 14h12v7H6z"/></svg>印刷
   </button>
-  <button class="btn edit-only" onclick="exportJSON()">エクスポート</button>
   <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
   <button class="btn btn-primary edit-only" onclick="openAddModal()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>新規物件
@@ -522,6 +530,19 @@ body.view-mode .view-badge{display:inline-flex!important}
       <div style="font-size:10px;color:#888;margin-top:4px">開始日〜終了日の列が薄緑で表示されます</div>
     </div>
     <div class="settings-section">
+      <h3>PC工場の長期休暇</h3>
+      <div id="fHolList" style="margin-bottom:8px"></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) auto;gap:4px;align-items:center">
+        <input class="small-input" id="newFHolFactory" list="fHolFactoryOpts" placeholder="工場名（選択または入力）">
+        <input class="small-input" id="newFHolName" placeholder="休暇名（例：年末年始）">
+        <input type="date" class="small-input" id="newFHolStart">
+        <input type="date" class="small-input" id="newFHolEnd">
+        <button class="btn btn-blue" onclick="addFactoryHoliday()">＋</button>
+      </div>
+      <datalist id="fHolFactoryOpts"></datalist>
+      <div style="font-size:10px;color:#888;margin-top:4px">工場は一覧から選ぶか、名前を入力して追加できます。「予定表に表示」にチェックを入れた工場の休みを、レンタカー欄の下に表示します</div>
+    </div>
+    <div class="settings-section">
       <h3>自動削除</h3>
       <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
         <label style="font-size:12px">PC着日から</label>
@@ -668,7 +689,7 @@ let _localRev=0,_ackRev=0,_inflight=0,_synced=false;
 function _hasUnsaved(){return _localRev!==_ackRev||_inflight>0}
 
 /* Firebaseは空のリスト・空のオブジェクトを保存しないため、受信時に無い項目は空で補う */
-const SYNC_EMPTY_DEFAULTS={properties:[],cellTexts:{},rentalTexts:{},holidays:[],makers:[],salesStaff:[],pcStaff:[],pcFactories:[]};
+const SYNC_EMPTY_DEFAULTS={properties:[],cellTexts:{},rentalTexts:{},holidays:[],makers:[],salesStaff:[],pcStaff:[],pcFactories:[],factoryHolidays:[],factoryHolShow:[]};
 
 /* ===== 同期：2人が同時に保存しても上書きで消えないよう、項目ごとにマージして保存 =====
    _base : 最後にサーバーと一致していたデータ（ここからの差分を「手元の変更」とみなす） */
@@ -762,7 +783,8 @@ function renderMeta(){
   el.textContent=`最終更新 ${sameDay?'':(d.getMonth()+1)+'/'+d.getDate()+' '}${zp(d.getHours())}:${zp(d.getMinutes())}${m.by?'（'+m.by+'）':''}`;
 }
 
-/* Firebaseにデータを保存（サーバーの最新とマージ） */
+/* Firebaseにデータを保存（受信済みのサーバー最新とマージしてから保存） */
+let _remote=null; /* 最後に受信したサーバーのデータ（未保存の変更があるときも更新する） */
 function saveToFirebase(){
   if(IS_VIEW_MODE)return;
   /* 最初の受信前は保存しない（ブラウザに残った古いデータで上書きしないため） */
@@ -770,32 +792,35 @@ function saveToFirebase(){
   if(_inflight>0){_saveQueued=true;return;} /* 保存中なら終わってから続けて保存 */
   state.meta={by:editorName(),at:Date.now()};
   const sent=_snapData(state);
-  const base=_base;
+  let data=sent;
+  try{
+    if(_base&&_remote)data=mergeData(_base,sent,_remote);
+  }catch(e){console.warn('merge failed',e);data=sent;}
   const rev=_localRev;
   _inflight++;
-  DB_REF.transaction(cur=>{
-    if(cur===null||cur===undefined||!base)return sent;
-    return mergeData(base,sent,_normRemote(cur));
-  },(err,committed,snap)=>{
+  /* 15秒たっても保存が終わらなければ知らせる */
+  const _wd=setTimeout(()=>{if(_ackRev<rev)showToast('保存が完了していません。通信状況を確認してください');},15000);
+  DB_REF.set(data).then(()=>{
+    clearTimeout(_wd);
     _inflight--;
-    if(err){
-      _saveQueued=false;
-      console.warn("Firebase save error:",err);
-      showToast('保存に失敗しました。通信状況を確認してください');
-      return;
-    }
-    if(!committed)return;
     if(rev>_ackRev)_ackRev=rev;
     showAutoSave();
+    /* 保存後の最新：自分の保存のあとに届いた他の人の変更も含む */
+    const merged=_remote||_normRemote(data);
     if(_saveQueued){                 /* 保存中にさらに変更あり → 続けて保存 */
       _saveQueued=false;_base=_normRemote(sent);saveToFirebase();
     } else if(_localRev===rev){      /* 手元の変更はすべて保存済み → マージ結果を画面へ */
-      const merged=_normRemote(snap.val());
       _base=merged;_applyRemote(merged);
     } else {                         /* 次の保存が待機中 */
       _base=_normRemote(sent);
     }
-  },false);
+  }).catch(e=>{
+    clearTimeout(_wd);
+    _inflight--;
+    _saveQueued=false;
+    console.warn("Firebase save error:",e);
+    showToast('保存に失敗しました。通信状況を確認してください');
+  });
 }
 
 /* 受信データを画面に反映（表示中の期間・週数は端末ごとなので変えない） */
@@ -817,9 +842,10 @@ function listenFirebase(){
   _fbListening=true;
   DB_REF.on("value",snapshot=>{
     const first=!_synced;
+    const raw=snapshot.val();
+    try{_remote=raw?_normRemote(raw):null;}catch(e){console.warn(e);}
     /* 手元に未保存・保存中の変更があるときは上書きしない（保存時にマージする） */
     if(!first&&!IS_VIEW_MODE&&_hasUnsaved())return;
-    const raw=snapshot.val();
     if(first){_synced=true;_ackRev=_localRev;} /* 最初の受信はサーバーのデータを正とする */
     if(!raw){_base=null;if(first)_afterFirstSync();return;}
     const saved=_normRemote(raw);
@@ -949,16 +975,17 @@ document.addEventListener('keydown',e=>{
 /* ===== 六曜（旧暦朔日テーブルによる正確計算）===== */
 /* 大安0 赤口1 先勝2 友引3 先負4 仏滅5  ← (旧暦月+旧暦日)%6 のインデックス */
 const ROKUYO=['大安','赤口','先勝','友引','先負','仏滅'];
-/* 国立天文台基準の朔日データ [ISO日付文字列, 旧暦月番号] */
+/* 朔日（新月の日・日本時間）データ [ISO日付文字列, 旧暦月番号]　閏月は前の月と同じ番号
+   天文計算で求めた値（2024/11〜2031/2）。表の範囲外は六曜を表示しない */
 const SAKUJITSU=[
-  ['2024-12-31',11],
-  ['2025-01-29',12],['2025-02-28',1],['2025-03-29',2],['2025-04-28',3],
-  ['2025-05-27',4], ['2025-06-25',5],['2025-07-25',6],['2025-08-23',7],
-  ['2025-09-22',8], ['2025-10-21',9],['2025-11-20',10],['2025-12-20',11],
-  ['2026-01-18',12],['2026-02-17',1],['2026-03-18',2],['2026-04-17',3],
-  ['2026-05-17',4], ['2026-06-15',5],['2026-07-15',6],['2026-08-13',7],
-  ['2026-09-11',8], ['2026-10-10',9],['2026-11-09',10],['2026-12-08',11],
-  ['2027-01-07',12],
+  ['2024-11-01',10],['2024-12-01',11],['2024-12-31',12],
+  ['2025-01-29',1],['2025-02-28',2],['2025-03-29',3],['2025-04-28',4],['2025-05-27',5],['2025-06-25',6],['2025-07-25',6]/*閏*/,['2025-08-23',7],['2025-09-22',8],['2025-10-21',9],['2025-11-20',10],['2025-12-20',11],
+  ['2026-01-19',12],['2026-02-17',1],['2026-03-19',2],['2026-04-17',3],['2026-05-17',4],['2026-06-15',5],['2026-07-14',6],['2026-08-13',7],['2026-09-11',8],['2026-10-11',9],['2026-11-09',10],['2026-12-09',11],
+  ['2027-01-08',12],['2027-02-07',1],['2027-03-08',2],['2027-04-07',3],['2027-05-06',4],['2027-06-05',5],['2027-07-04',6],['2027-08-02',7],['2027-09-01',8],['2027-09-30',9],['2027-10-29',10],['2027-11-28',11],['2027-12-28',12],
+  ['2028-01-27',1],['2028-02-25',2],['2028-03-26',3],['2028-04-25',4],['2028-05-24',5],['2028-06-23',5]/*閏*/,['2028-07-22',6],['2028-08-20',7],['2028-09-19',8],['2028-10-18',9],['2028-11-16',10],['2028-12-16',11],
+  ['2029-01-15',12],['2029-02-13',1],['2029-03-15',2],['2029-04-14',3],['2029-05-13',4],['2029-06-12',5],['2029-07-12',6],['2029-08-10',7],['2029-09-08',8],['2029-10-08',9],['2029-11-06',10],['2029-12-05',11],
+  ['2030-01-04',12],['2030-02-03',1],['2030-03-04',2],['2030-04-03',3],['2030-05-02',4],['2030-06-01',5],['2030-07-01',6],['2030-07-30',7],['2030-08-29',8],['2030-09-27',9],['2030-10-27',10],['2030-11-25',11],['2030-12-25',12],
+  ['2031-01-23',1],['2031-02-22',2],
 ];
 /* 日付→旧暦(月,日)を返す */
 function _kyureki(d){
@@ -967,13 +994,16 @@ function _kyureki(d){
   for(const [s,m] of SAKUJITSU){
     if(s<=ds){prevSaku=s;prevMonth=m;}else break;
   }
-  if(!prevSaku)return[1,1];
-  const diff=Math.round((d-new Date(prevSaku))/86400000)+1;
+  if(!prevSaku)return null;
+  /* 日数は両方とも日本時間の0時で数える（UTC扱いによるずれを防ぐ） */
+  const diff=Math.round((toDate(ds)-toDate(prevSaku))/86400000)+1;
+  if(diff>30)return null; /* 表の範囲外 */
   return[prevMonth,diff];
 }
 function getRokuyo(d){
-  const[m,day]=_kyureki(d);
-  return ROKUYO[(m+day)%6];
+  const k=_kyureki(d);
+  if(!k)return'';
+  return ROKUYO[(k[0]+k[1])%6];
 }
 
 /* ===== ユーティリティ ===== */
@@ -1051,6 +1081,11 @@ function normalizeDates(saved){
       finalCheck:normDate(p.finalCheck),
     }));
   }
+  if(saved.factoryHolidays&&!Array.isArray(saved.factoryHolidays))saved.factoryHolidays=Object.values(saved.factoryHolidays);
+  if(Array.isArray(saved.factoryHolidays)){
+    saved.factoryHolidays=saved.factoryHolidays.filter(Boolean).map(h=>({...h,start:normDate(h.start),end:normDate(h.end)}));
+  }
+  if(saved.factoryHolShow&&!Array.isArray(saved.factoryHolShow))saved.factoryHolShow=Object.values(saved.factoryHolShow);
   if(Array.isArray(saved.holidays)){
     saved.holidays=saved.holidays.filter(Boolean).map(h=>({...h,start:normDate(h.start),end:normDate(h.end)}));
   }
@@ -1121,7 +1156,9 @@ let state={
   pcFactories:['中国木材','朝間PC'],
   dragData:null,cellTexts:{},autoDeleteWeeks:3,
   holidays:[],
-  rentalTexts:{}
+  rentalTexts:{},
+  factoryHolidays:[], /* PC工場の長期休暇 [{factory,name,start,end}] */
+  factoryHolShow:[]   /* 予定表に休みを表示する工場名 */
 };
 let TODAY=new Date();TODAY.setHours(0,0,0,0);
 
@@ -1164,13 +1201,6 @@ function _makeJSON(){
   return JSON.stringify(s,null,2);
 }
 
-/* エクスポート: 固定ファイル名 */
-function exportJSON(){
-  const blob=new Blob([_makeJSON()],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='PC搬入予定表.json';a.click();URL.revokeObjectURL(a.href);
-  showToast('PC搬入予定表.json をダウンロードしました');
-}
 
 /* アーカイブ: タイムスタンプ付きファイル名 */
 function archiveJSON(){
@@ -1315,6 +1345,18 @@ function renderTable(){
       if(rTxt) html+=`<span class="cell-text" draggable="true" ondragstart="onRentalTextDragStart(event,${rCtJson})" title="${esc(rTxt)}" style="font-size:${rFs}px">${esc(rTxt)}</span>`;
       html+='</td>';
     }
+    html+='</tr>';
+  }
+  /* ===== PC工場の休み（チェックした工場のみ） ===== */
+  for(const fh of factoryHolidayRows()){
+    const fc=getFactoryColor(fh.factory).color;
+    html+=`<tr class="r-sub fh-row"><td class="fh-label" colspan="2"><span class="dot" style="background:${fc}"></span>${esc(fh.factory)}　休み</td>`;
+    dates.forEach((d,di)=>{
+      const ds=isoDate(d);
+      const h=fh.list.find(x=>x.start&&x.end&&ds>=x.start&&ds<=x.end);
+      const showName=h&&(ds===h.start||di===0);
+      html+=`<td class="fh-cell${dayCls(d)}${h?' fh-on':''}"${h?` style="--fc:${fc}" title="${esc(fh.factory+'　'+(h.name||'休み')+'（'+fmtShort(h.start)+'〜'+fmtShort(h.end)+'）')}"`:''}>${showName?`<span class="fh-name">${esc(h.name||'休み')}</span>`:''}</td>`;
+    });
     html+='</tr>';
   }
   html+=`<tr class="rental-sep"><td colspan="${ncol}"><span class="sec"><b>物件</b><span>${visibleProps.length}件${filterActive()?'（全'+_inPeriod.length+'件）':''}</span></span></td></tr>`;
@@ -2192,6 +2234,67 @@ function removeHoliday(i){
   renderHolidayList();scheduleAutoSave();renderTable();
 }
 
+
+/* ===== PC工場の長期休暇 ===== */
+function factoryHolidayRows(){
+  const list=state.factoryHolidays||[];
+  const show=state.factoryHolShow||[];
+  const names=[];
+  [...(state.pcFactories||[]),...list.map(h=>h.factory)].forEach(f=>{if(f&&show.includes(f)&&!names.includes(f))names.push(f);});
+  return names.map(f=>({factory:f,list:list.filter(h=>h.factory===f)})).filter(r=>r.list.length);
+}
+function renderFactoryHolidayList(){
+  const el=document.getElementById('fHolList');if(!el)return;
+  const dl=document.getElementById('fHolFactoryOpts');
+  if(dl)dl.innerHTML=(state.pcFactories||[]).map(f=>`<option value="${esc(f)}">`).join('');
+  const list=state.factoryHolidays||[];
+  if(!list.length){el.innerHTML='<div style="font-size:11px;color:#aaa">登録なし</div>';return;}
+  const names=[];
+  [...(state.pcFactories||[]),...list.map(h=>h.factory)].forEach(f=>{if(f&&!names.includes(f)&&list.some(h=>h.factory===f))names.push(f);});
+  const show=state.factoryHolShow||[];
+  el.innerHTML=names.map(f=>{
+    const rows=list.map((h,i)=>({h,i})).filter(x=>x.h.factory===f).sort((a,b)=>String(a.h.start).localeCompare(String(b.h.start)));
+    return `<div class="fh-group"><span>${esc(f)}</span><label><input type="checkbox" ${show.includes(f)?'checked':''} onchange="toggleFactoryHolShow(this.dataset.f,this.checked)" data-f="${esc(f)}">予定表に表示</label></div>`+
+      rows.map(({h,i})=>`<div style="display:flex;align-items:center;gap:6px;margin:0 0 4px 12px;font-size:11px">
+        <span style="background:#e3eefa;padding:1px 6px;border-radius:3px;font-weight:500">${esc(h.name||'休み')}</span>
+        <span>${h.start} 〜 ${h.end}</span>
+        <button class="btn btn-red" style="padding:1px 7px;font-size:10px" onclick="removeFactoryHoliday(${i})">削除</button>
+      </div>`).join('');
+  }).join('');
+}
+function addFactoryHoliday(){
+  const factory=document.getElementById('newFHolFactory').value.trim();
+  const name=document.getElementById('newFHolName').value.trim();
+  const start=document.getElementById('newFHolStart').value;
+  const end=document.getElementById('newFHolEnd').value;
+  if(!factory||!start||!end){showToast('工場名・開始日・終了日を入力してください');return;}
+  if(start>end){showToast('開始日は終了日より前にしてください');return;}
+  if(!state.factoryHolidays)state.factoryHolidays=[];
+  const isNewFactory=!state.factoryHolidays.some(h=>h.factory===factory);
+  state.factoryHolidays.push({factory,name,start,end});
+  /* 初めて登録した工場は予定表に表示する */
+  if(isNewFactory){
+    if(!state.factoryHolShow)state.factoryHolShow=[];
+    if(!state.factoryHolShow.includes(factory))state.factoryHolShow.push(factory);
+  }
+  ['newFHolName','newFHolStart','newFHolEnd'].forEach(id=>document.getElementById(id).value='');
+  renderFactoryHolidayList();scheduleAutoSave();renderTable();
+}
+function removeFactoryHoliday(i){
+  const h=state.factoryHolidays[i];if(!h)return;
+  state.factoryHolidays.splice(i,1);
+  /* その工場の休みがなくなったら表示設定も外す */
+  if(!state.factoryHolidays.some(x=>x.factory===h.factory))
+    state.factoryHolShow=(state.factoryHolShow||[]).filter(f=>f!==h.factory);
+  renderFactoryHolidayList();scheduleAutoSave();renderTable();
+}
+function toggleFactoryHolShow(f,on){
+  const cur=(state.factoryHolShow||[]).filter(x=>x!==f);
+  if(on)cur.push(f);
+  state.factoryHolShow=cur;
+  scheduleAutoSave();renderTable();
+}
+
 /* ===== 長期休暇判定 ===== */
 function isLongHoliday(d){
   const ds=isoDate(d);
@@ -2471,7 +2574,7 @@ function printFactory(){
 
 function openSettings(){
 
-  renderMakerList();renderStaffLists();renderFactoryList();renderHolidayList();
+  renderMakerList();renderStaffLists();renderFactoryList();renderHolidayList();renderFactoryHolidayList();
   const sel=document.getElementById('autoDeleteWeeksSelect');
   if(sel) sel.value=String(state.autoDeleteWeeks||3);
   renderEditorName();loadBackupList();
@@ -2598,7 +2701,7 @@ async function init(){
     /* Firebaseのリアルタイム同期開始（接続後にFirebaseデータで上書き） */
     listenFirebase();
   }
-  if(!state.startDate)initStart();
+  initStart(); /* 開いたとき・再読み込みしたときは今日の週から表示 */
   renderTable();
   applyMobileMode();
   setWeeks(state.weeks||3);
