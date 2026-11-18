@@ -32,7 +32,7 @@ function diffLines(before, after) {
     for (const [, f, label] of FIELDS) { const x = f(o), y = f(p); if (x !== y) ch.push(`${label} ${x}→${y}`); }
     if (ch.length) lines.push({ id, kind: '変更', text: `【変更】${p.name || o.name || '(名称なし)'}：${ch.join('、')}` });
   }
-  for (const [id, o] of b) if (!a.has(id)) lines.push({ id, kind: '削除', text: `【削除】${o.name || '(名称なし)'}` });
+  /* 削除は通知しない */
   return lines;
 }
 /* 同じ物件の行が複数たまったら、最初の状態と最後の状態から1行にまとめ直す */

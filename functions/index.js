@@ -44,9 +44,8 @@ exports.flushScheduleNotify = onSchedule(
     if (Date.now() - (q.lastAt || 0) < QUIET_MS) return; // まだ編集中
     const entries = Object.entries(q.items).sort((x, y) => x[1].at - y[1].at);
     const lines = summarize(entries.map(([, v]) => v));
-    const names = [...new Set(entries.map(([, v]) => v.by).filter(Boolean))];
     if (lines.length) {
-      let body = `📅 **PC搬入予定表が更新されました**${names.length ? '（' + names.join('・') + '）' : ''}\n` + lines.join('\n');
+      let body = `📅 **PC搬入予定表が更新されました**\n` + lines.join('\n');
       if (body.length > 1900) body = body.slice(0, 1900) + '\n…ほか';
       const res = await fetch(WEBHOOK.value(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: body }) });
       if (!res.ok) throw new Error('Discord投稿失敗 HTTP ' + res.status); // 失敗したら消さずに次回再送
