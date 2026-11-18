@@ -19,7 +19,9 @@ function lineText(kind, p) {
   return `【${kind}】${head}：${dates}`;
 }
 /* 通知のきっかけにする項目（PC着・土台・上棟・物件名・工務店名） */
-const KEYS = p => JSON.stringify([pcs(p), p.dodai || '', p.joto || '', p.name || '', p.makerName || '']);
+/* 日付は書き方（2026/12/1 と 2026-12-01 など）の違いを無視して比べる */
+function nd(s) { const m = String(s || '').match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/); return m ? `${m[1]}-${zp(m[2])}-${zp(m[3])}` : String(s || '').trim(); }
+const KEYS = p => JSON.stringify([pcs(p).map(nd).sort(), nd(p.dodai), nd(p.joto), String(p.name || '').trim(), String(p.makerName || '').trim()]);
 /* before/after の schedule データから、通知する行の一覧を作る（削除は通知しない） */
 function diffLines(before, after) {
   const b = props(before), a = props(after), lines = [];

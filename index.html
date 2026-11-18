@@ -1062,6 +1062,7 @@ function restoreBackup(key){
 /* ===== 元に戻す（Ctrl+Z）===== */
 const UNDO_SKIP=['startDate','weeks','dragData','meta'];
 let _undoBase=null,_undoStack=[],_undoTimer=null;
+let _quietUndo=false; /* trueのあいだの変更は「変更しました」バーを出さない（工場別一覧の状態など） */
 function _undoSnap(){
   const o={};
   for(const k in state){if(UNDO_SKIP.includes(k))continue;o[k]=state[k];}
@@ -1074,7 +1075,7 @@ function _recordUndo(){
   if(_undoBase&&!_eq(now,_undoBase)){
     _undoStack.push({before:_undoBase,after:now});
     if(_undoStack.length>30)_undoStack.shift();
-    showUndoBar();
+    if(!_quietUndo)showUndoBar();
   }
   _undoBase=now;
 }
@@ -1774,7 +1775,7 @@ function markFactorySent(){
     if(p.pcStatus)p.pcStatus='';
   });
   state.factorySentAt=Date.now();
-  scheduleAutoSave();
+  _quietUndo=true;scheduleAutoSave();_quietUndo=false;
 }
 
 /* ===== スマホ：今後の予定を一覧表示 ===== */
@@ -2651,7 +2652,7 @@ function cycleStatus(propId){
   const cur=prop.pcStatus||'';
   const next=cycle[(Math.max(0,cycle.indexOf(cur))+1)%cycle.length];
   prop.pcStatus=next;
-  scheduleAutoSave();
+  _quietUndo=true;scheduleAutoSave();_quietUndo=false;
   renderFactoryModal();
 }
 
@@ -2670,19 +2671,26 @@ function copyFactoryHTML(){
     el.style.padding='3px 6px';
   });
   const html='<meta charset="UTF-8">'+clone.innerHTML;
-  markFactorySent(); /* 今回コピーした内容を次回の新規/変更判定の基準にする */
-  /* Clipboard API（HTML対応）*/
+  const text=Array.from(clone.querySelectorAll('tr')).map(tr=>Array.from(tr.children).map(td=>td.textContent.replace(/\s+/g,' ').trim()).join('\t')).join('\n');
+  const done=()=>{
+    msg.style.display='inline';
+    setTimeout(()=>msg.style.display='none',2500);
+    markFactorySent(); /* コピーできたら、今回の内容を次回の新規/変更判定の基準にする */
+  };
+  /* 1) クリック直後にその場でコピー（Electron・各ブラウザで確実。HTMLと文字の両方を入れる） */
+  let ok=false;
+  const onCopy=e=>{e.clipboardData.setData('text/html',html);e.clipboardData.setData('text/plain',text);e.preventDefault();ok=true;};
+  document.addEventListener('copy',onCopy);
+  try{document.execCommand('copy');}catch(e){}
+  document.removeEventListener('copy',onCopy);
+  if(ok){done();return;}
+  /* 2) だめならClipboard API */
   if(navigator.clipboard&&window.ClipboardItem){
-    const blob=new Blob([html],{type:'text/html'});
-    const item=new ClipboardItem({'text/html':blob});
-    navigator.clipboard.write([item])
-      .then(()=>{
-        msg.style.display='inline';
-        setTimeout(()=>msg.style.display='none',2500);
-      })
-      .catch(()=>fallbackCopy(area,msg));
+    navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([html],{type:'text/html'}),'text/plain':new Blob([text],{type:'text/plain'})})])
+      .then(done)
+      .catch(()=>{if(fallbackCopy(area,msg))markFactorySent();});
   } else {
-    fallbackCopy(area,msg);
+    if(fallbackCopy(area,msg))markFactorySent();
   }
 }
 function fallbackCopy(area,msg){
@@ -2693,13 +2701,15 @@ function fallbackCopy(area,msg){
   sel.removeAllRanges();
   sel.addRange(range);
   try{
-    document.execCommand('copy');
+    if(!document.execCommand('copy'))throw new Error('copy failed');
     msg.style.display='inline';
     setTimeout(()=>msg.style.display='none',2500);
   }catch(e){
     showToast('コピーに失敗しました。手動でコピーしてください。');
+    sel.removeAllRanges();return false;
   }
   sel.removeAllRanges();
+  return true;
 }
 
 function printFactory(){
