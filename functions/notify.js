@@ -7,32 +7,27 @@ function md(s) { // '2026-11-25' -> '11/25'
 function list(v) { if (!v) return []; return Array.isArray(v) ? v.filter(Boolean) : Object.values(v).filter(Boolean); }
 function pcs(p) { return list(p.pcdates).length ? list(p.pcdates).map(String).sort() : (p.pcdate ? [String(p.pcdate)] : []); }
 function props(data) { const m = new Map(); list(data && data.properties).forEach(p => { if (p && p.id != null) m.set(String(p.id), p); }); return m; }
-function datesText(p) {
-  const a = [];
+/* 1行の形：【新規】工務店名・物件名：PC着M/D・土台M/D・上棟M/D */
+function lineText(kind, p) {
   const pc = pcs(p);
-  if (pc.length) a.push('PC着 ' + pc.map(md).join('・'));
-  if (p.dodai) a.push('土台 ' + md(p.dodai));
-  if (p.joto) a.push('上棟 ' + md(p.joto));
-  return a.join(' / ');
+  const head = [p.makerName, p.name || '(名称なし)'].filter(Boolean).join('・');
+  const dates = [
+    'PC着' + (pc.length ? pc.map(md).join('、') : '未定'),
+    '土台' + (p.dodai ? md(p.dodai) : '未定'),
+    '上棟' + (p.joto ? md(p.joto) : '未定'),
+  ].join('・');
+  return `【${kind}】${head}：${dates}`;
 }
-const FIELDS = [
-  ['pc', p => pcs(p).map(md).join('・') || '未定', 'PC着'],
-  ['dodai', p => p.dodai ? md(p.dodai) : '未定', '土台'],
-  ['joto', p => p.joto ? md(p.joto) : '未定', '上棟'],
-  ['factory', p => p.pcFactory || '未設定', 'PC工場'],
-  ['name', p => p.name || '', '物件名'],
-];
-/* before/after の schedule データから、通知する行の一覧を作る */
+/* 通知のきっかけにする項目（PC着・土台・上棟・物件名・工務店名） */
+const KEYS = p => JSON.stringify([pcs(p), p.dodai || '', p.joto || '', p.name || '', p.makerName || '']);
+/* before/after の schedule データから、通知する行の一覧を作る（削除は通知しない） */
 function diffLines(before, after) {
   const b = props(before), a = props(after), lines = [];
   for (const [id, p] of a) {
     const o = b.get(id);
-    if (!o) { lines.push({ id, kind: '新規', text: `【新規】${p.name || '(名称なし)'}${datesText(p) ? '（' + datesText(p) + '）' : ''}` }); continue; }
-    const ch = [];
-    for (const [, f, label] of FIELDS) { const x = f(o), y = f(p); if (x !== y) ch.push(`${label} ${x}→${y}`); }
-    if (ch.length) lines.push({ id, kind: '変更', text: `【変更】${p.name || o.name || '(名称なし)'}：${ch.join('、')}` });
+    if (!o) { lines.push({ id, kind: '新規', text: lineText('新規', p) }); continue; }
+    if (KEYS(o) !== KEYS(p)) lines.push({ id, kind: '変更', text: lineText('変更', p) });
   }
-  /* 削除は通知しない */
   return lines;
 }
 /* 同じ物件の行が複数たまったら、最初の状態と最後の状態から1行にまとめ直す */
