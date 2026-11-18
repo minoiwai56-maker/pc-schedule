@@ -173,6 +173,8 @@ tr.r-sub>td{height:20px}
 /* ===== ダイアログ ===== */
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.38);z-index:1000;display:flex;align-items:flex-start;justify-content:center;padding:32px 20px;overflow-y:auto}
 .modal{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:0 20px 18px;width:590px;max-width:95vw;box-shadow:0 18px 50px rgba(0,0,0,.25);overflow:hidden}
+#settingsModal .modal{max-height:calc(100vh - 48px);overflow:auto}
+.modal h2.modal-titlebar{display:flex;align-items:center;gap:10px;position:sticky;top:var(--mtop,0);z-index:20;padding-top:9px;padding-bottom:9px}
 .modal h2{font-size:15px;font-weight:700;margin:0 -20px 16px;padding:13px 20px;background:var(--hdr);border-bottom:1px solid var(--line);color:var(--tx)}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
 .form-group{display:flex;flex-direction:column;gap:4px}
@@ -272,6 +274,22 @@ body.view-mode .view-badge{display:inline-flex!important}
 .fh-name{position:relative;z-index:2;padding-left:4px;font-weight:600;color:var(--tx)}
 .fh-group{display:flex;align-items:center;gap:8px;margin:8px 0 3px;font-size:12px;font-weight:600}
 .fh-group label{display:inline-flex;align-items:center;gap:4px;font-weight:500;font-size:11px;color:#555;cursor:pointer}
+/* 保存の状態（常に表示） */
+.autosave-indicator{display:none!important} /* 「保存済み」表示に統合 */
+.save-state{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:13px;border:1px solid var(--line);background:#fff;font:inherit;font-size:11.5px;font-weight:600;color:var(--tx2);cursor:pointer;white-space:nowrap}
+.save-state i{width:8px;height:8px;border-radius:50%;background:#aeaeb2}
+.save-state[data-s="ok"] i{background:#34c759}
+.save-state[data-s="pending"] i,.save-state[data-s="saving"] i{background:#ff9500}
+.save-state[data-s="error"]{border-color:#ff3b30;background:#fff0ef;color:#d70015}
+.save-state[data-s="error"] i,.save-state[data-s="offline"] i{background:#ff3b30}
+.save-state[data-s="offline"]{border-color:#ff3b30;color:#d70015}
+.test-badge{display:none;align-items:center;height:22px;padding:0 10px;border-radius:11px;background:#ff9500;color:#fff;font-size:11.5px;font-weight:700;white-space:nowrap}
+body.test-mode .test-badge{display:inline-flex}
+body.test-mode .app-header{background:#fff4e0}
+/* 重大な警告（自動では消えない） */
+.alert-bar{position:fixed;top:0;left:0;right:0;z-index:3000;display:none;align-items:center;gap:12px;justify-content:center;background:#d70015;color:#fff;font-size:13px;font-weight:700;padding:10px 16px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.alert-bar.show{display:flex}
+.alert-bar button{border:1px solid #fff;background:transparent;color:#fff;font:inherit;font-size:12px;padding:3px 10px;border-radius:6px;cursor:pointer}
 /* 最終更新 */
 .last-update{font-size:11.5px;color:var(--tx3);white-space:nowrap;margin-left:auto}
 .last-update+.lg-filter{margin-left:6px}
@@ -323,6 +341,7 @@ body.view-mode .view-badge{display:inline-flex!important}
     <h1>PC搬入予定表</h1>
   </div>
   <span class="view-badge">閲覧モード</span>
+  <span class="test-badge" id="testBadge">テストモード（本番データではありません）</span>
   <div class="nav">
     <button class="btn btn-icon keep-mobile" onclick="prevPeriod()" aria-label="前の週" title="前の週">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
@@ -340,6 +359,7 @@ body.view-mode .view-badge{display:inline-flex!important}
   </div>
   <div class="spacer"></div>
   <span class="autosave-indicator" id="autoSaveInd">✓ 保存しました</span>
+  <button class="save-state edit-only" id="saveState" data-s="wait" onclick="showSaveDetail()" title="保存の状態（クリックで詳細）"><i></i><span>接続中…</span></button>
   <button class="btn mobile-only" id="mobileToggle" onclick="toggleMobileView()">表で見る</button>
   <span class="header-time" id="headerTime"></span>
   <button class="btn edit-only" onclick="sortByPcDate()" title="PC着日順に並べ替え">
@@ -461,7 +481,7 @@ body.view-mode .view-badge{display:inline-flex!important}
 <!-- 設定 -->
 <div class="modal-overlay" id="settingsModal" style="display:none">
   <div class="modal" style="width:660px">
-    <h2>⚙ 設定</h2>
+    <h2 class="modal-titlebar">⚙ 設定<button class="btn btn-gray" onclick="closeModal('settingsModal')" style="margin-left:auto;flex-shrink:0">✕ 閉じる</button></h2>
     <div class="settings-section">
       <h3>この端末</h3>
       <div style="display:flex;align-items:center;gap:8px">
@@ -625,6 +645,7 @@ body.view-mode .view-badge{display:inline-flex!important}
 </div>
 
 <div class="toast no-print" id="toastEl"></div>
+<div class="alert-bar no-print" id="alertBar"><span id="alertMsg"></span><button onclick="hideAlert()">閉じる</button></div>
 <div class="undo-bar no-print" id="undoBar"><span>変更しました</span><button onclick="undoLast()">元に戻す</button><span class="undo-key">Ctrl+Z</span></div>
 <script>
 /* ===== 祝日 ===== */
@@ -677,7 +698,10 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
-const DB_REF=db.ref("schedule");
+/* ?test を付けると本番とは別のテスト用データで動く（反映前の試運転用） */
+const IS_TEST=/[?&]test(=|&|$)/.test(location.search);
+const DB_PATH=IS_TEST?"schedule_test":"schedule";
+const DB_REF=db.ref(DB_PATH);
 let _fbListening=false;
 
 /* ===== 同期の状態 =====
@@ -792,6 +816,40 @@ function renderMeta(){
   el.textContent=`最終更新 ${sameDay?'':(d.getMonth()+1)+'/'+d.getDate()+' '}${zp(d.getHours())}:${zp(d.getMinutes())}${m.by?'（'+m.by+'）':''}`;
 }
 
+/* ===== 保存の状態表示・警告 ===== */
+const SAVE_LABEL={wait:'接続中…',ok:'保存済み',pending:'未保存',saving:'保存中…',error:'保存できていません',offline:'サーバー未接続'};
+let _saveState='wait';
+function setSaveState(st){
+  _saveState=st;
+  const el=document.getElementById('saveState');if(!el)return;
+  el.dataset.s=st;el.querySelector('span').textContent=SAVE_LABEL[st]||st;
+}
+function showAlert(msg){
+  const b=document.getElementById('alertBar');if(!b)return;
+  document.getElementById('alertMsg').textContent=msg;b.classList.add('show');
+}
+function hideAlert(){const b=document.getElementById('alertBar');if(b)b.classList.remove('show');}
+function showSaveDetail(){
+  const i=_lastSaveInfo;
+  const t=i.at?new Date(i.at).toLocaleString('ja-JP'):'なし';
+  alert(`保存の状態：${SAVE_LABEL[_saveState]}\n最後の保存：${t}${i.ok===false?'（失敗）':''}\n${i.msg||''}${IS_TEST?'\n\n※テストモード（本番データではありません）':''}`);
+}
+/* 保存がエラーになったときの共通処理：自動で消えない赤い帯で知らせる */
+function _saveFailed(msg){
+  _lastSaveInfo={ok:false,at:Date.now(),msg};
+  setSaveState('error');
+  showAlert('保存できていません。この画面での変更はサーバーに届いていません（'+msg.slice(0,80)+'）');
+}
+/* 保存後、サーバーに本当に入ったかを別経路（REST）で確かめる */
+function _verifySaved(at){
+  const url=firebaseConfig.databaseURL+'/'+DB_PATH+'/meta/at.json?t='+Date.now();
+  fetch(url,{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(new Error('HTTP '+r.status)))
+    .then(v=>{
+      if(typeof v!=='number'||v<at){_saveFailed('サーバーの内容が更新されていません');}
+    })
+    .catch(e=>console.warn('verify skipped',e)); /* 確認自体の通信失敗は警告しない */
+}
+
 /* Firebaseにデータを保存（受信済みのサーバー最新とマージしてから保存） */
 let _remote=null; /* 最後に受信したサーバーのデータ（未保存の変更があるときも更新する） */
 /* Firebaseが受け付けない形（キーに . # $ / [ ] を含む、undefined、NaNなど）を取り除く。
@@ -817,6 +875,8 @@ function saveToFirebase(){
   if(!_synced){showToast('サーバーと接続中のため、まだ保存できません');return;}
   if(_inflight>0){_saveQueued=true;return;} /* 保存中なら終わってから続けて保存 */
   state.meta={by:editorName(),at:Date.now()};
+  const _metaAt=state.meta.at;
+  setSaveState('saving');
   const sent=_snapData(state);
   let data=sent;
   try{
@@ -828,14 +888,13 @@ function saveToFirebase(){
   const rev=_localRev;
   _inflight++;
   /* 15秒たっても保存が終わらなければ知らせる */
-  const _wd=setTimeout(()=>{if(_ackRev<rev)showToast('保存が完了していません。通信状況を確認してください');},15000);
+  const _wd=setTimeout(()=>{if(_ackRev<rev)_saveFailed('15秒たってもサーバーから応答がありません');},15000);
   let _p;
   try{_p=DB_REF.set(data);}
   catch(e){ /* 形式エラーはその場で例外になる → 保存中のまま止まらないようにする */
     clearTimeout(_wd);_inflight--;_saveQueued=false;
-    _lastSaveInfo={ok:false,at:Date.now(),msg:String(e&&e.message||e)};
     console.warn("Firebase save error:",e);
-    showToast('保存に失敗しました：'+_lastSaveInfo.msg.slice(0,80));
+    _saveFailed(String(e&&e.message||e));
     return;
   }
   _p.then(()=>{
@@ -843,6 +902,9 @@ function saveToFirebase(){
     _lastSaveInfo={ok:true,at:Date.now(),msg:bad.length?'保存できない形式のため除外：'+bad.slice(0,5).join(', '):''};
     _inflight--;
     if(rev>_ackRev)_ackRev=rev;
+    if(_saveState==='error')hideAlert();
+    setSaveState(_hasUnsaved()||_saveQueued?'pending':'ok');
+    _verifySaved(_metaAt);
     showAutoSave();
     /* 保存後の最新：自分の保存のあとに届いた他の人の変更も含む */
     const merged=_remote||_normRemote(data);
@@ -857,9 +919,8 @@ function saveToFirebase(){
     clearTimeout(_wd);
     _inflight--;
     _saveQueued=false;
-    _lastSaveInfo={ok:false,at:Date.now(),msg:String(e&&e.message||e)};
     console.warn("Firebase save error:",e);
-    showToast('保存に失敗しました：'+_lastSaveInfo.msg.slice(0,80));
+    _saveFailed(String(e&&e.message||e));
   });
 }
 
@@ -898,12 +959,49 @@ function listenFirebase(){
 /* 最初の受信が済んでから自動削除チェック・毎日のバックアップ（古いデータで判定・保存しないため） */
 function _afterFirstSync(){
   if(IS_VIEW_MODE)return;
+  setSaveState('ok');
+  startupCheck();
   dailyBackup();
   setTimeout(checkAutoDelete,300);
 }
 
+/* 起動時チェック：書き込み→読み戻しができるか確かめる */
+function startupCheck(){
+  const key=(editorName()||'device').replace(/[^0-9A-Za-z_\u3040-\u30ff\u4e00-\u9fff-]/g,'_')||'device';
+  const ref=db.ref((IS_TEST?'backups_test':'backups')+'/health/'+key);
+  const v=Date.now();
+  const to=setTimeout(()=>_saveFailed('起動時チェック：サーバーに書き込めません（応答なし）'),15000);
+  let p;
+  try{p=ref.set({at:v});}catch(e){clearTimeout(to);_saveFailed('起動時チェック：'+String(e&&e.message||e));return;}
+  p.then(()=>{
+    clearTimeout(to);
+    /* 別経路（REST）で読み戻して確認。確認用の通信自体が失敗したときは警告しない */
+    fetch(firebaseConfig.databaseURL+'/'+(IS_TEST?'backups_test':'backups')+'/health/'+encodeURIComponent(key)+'/at.json?t='+v,{cache:'no-store'})
+      .then(r=>r.ok?r.json():null)
+      .then(x=>{if(typeof x==='number'&&x<v)_saveFailed('起動時チェック：書き込んだ内容を読み戻せません');})
+      .catch(e=>console.warn('startup verify skipped',e));
+  },e=>{clearTimeout(to);_saveFailed('起動時チェック：サーバーに書き込めません（'+String(e&&e.message||e)+'）');});
+}
+/* 接続状態の見張り（切れたら表示） */
+let _wasConnected=false;
+try{
+  db.ref('.info/connected').on('value',s=>{
+    if(IS_VIEW_MODE)return;
+    const c=!!s.val();
+    if(c){_wasConnected=true;if(_saveState==='offline')setSaveState(_hasUnsaved()?'pending':'ok');}
+    else if(_wasConnected){setSaveState('offline');}
+  });
+}catch(e){console.warn('connection monitor unavailable',e);}
+/* 保存していない変更があるときに閉じる・再読み込みしようとしたら */
+window.addEventListener('beforeunload',e=>{
+  if(IS_VIEW_MODE||!_synced||!_hasUnsaved())return;
+  try{clearTimeout(_ast);saveToFirebase();}catch(_){} /* できるだけ送る */
+  if(/Electron/i.test(navigator.userAgent))return; /* Electronは確認なしで閉じられなくなるため確認は出さない */
+  e.preventDefault();e.returnValue='';
+});
+
 /* ===== 自動バックアップ（1日1回・14日分）===== */
-const BK_REF=db.ref('backups');
+const BK_REF=db.ref(IS_TEST?'backups_test':'backups');
 const BK_KEEP_DAYS=14;
 let _bkDoneDay='';
 function dailyBackup(){
@@ -1167,7 +1265,7 @@ function fmtTsubo(v){
 }
 
 /* ===== State ===== */
-const STORAGE_KEY='pc_schedule_v2';
+const STORAGE_KEY=IS_TEST?'pc_schedule_v2_test':'pc_schedule_v2';
 let state={
   weeks:3,startDate:null,properties:[],
   makers:[
@@ -1229,6 +1327,7 @@ function scheduleAutoSave(){
   if(IS_VIEW_MODE)return;
   _localRev++; /* 未保存の変更あり → 保存が終わるまで受信で上書きしない */
   _recordUndo();
+  if(_saveState!=='error'&&_saveState!=='offline')setSaveState('pending');
   clearTimeout(_ast);_ast=setTimeout(saveData,300);
 }
 function showAutoSave(){
@@ -2729,6 +2828,7 @@ function updateTime(){
 const IS_VIEW_MODE=location.search.includes('view');
 
 async function init(){
+  if(IS_TEST)document.body.classList.add('test-mode');
   if(IS_VIEW_MODE){
     /* 閲覧モード: Firebaseのデータをそのまま表示（リアルタイム反映） */
     document.body.classList.add('view-mode');
