@@ -469,6 +469,7 @@ body.view-mode .view-badge{display:inline-flex!important}
         <input class="small-input" id="editorNameInput" placeholder="例：岩井" style="width:160px" onchange="saveEditorName()">
         <span style="font-size:10px;color:#888">画面上部の「最終更新」に表示されます</span>
       </div>
+      <div id="saveStatus" style="font-size:11px;color:#555;margin-top:6px"></div>
     </div>
     <div class="settings-section">
       <h3>工務店マスタ</h3>
@@ -767,6 +768,14 @@ function mergeData(b,l,r){
 /* この端末の名前（最終更新の表示用） */
 const EDITOR_KEY='pc_schedule_editor';
 function editorName(){try{return localStorage.getItem(EDITOR_KEY)||''}catch(e){return''}}
+function renderSaveStatus(){
+  const el=document.getElementById('saveStatus');if(!el)return;
+  const i=_lastSaveInfo;
+  const t=i.at?new Date(i.at).toLocaleTimeString('ja-JP'):'';
+  el.innerHTML=i.ok===null?'保存の状態：この画面を開いてからまだ保存していません'
+    :i.ok?`保存の状態：<b style="color:#1e7e34">正常</b>（${t}）${i.msg?'　'+esc(i.msg):''}`
+    :`保存の状態：<b style="color:#d70015">失敗</b>（${t}）　${esc(i.msg)}`;
+}
 function renderEditorName(){const el=document.getElementById('editorNameInput');if(el)el.value=editorName();}
 function saveEditorName(){
   const el=document.getElementById('editorNameInput');
@@ -785,6 +794,23 @@ function renderMeta(){
 
 /* Firebaseにデータを保存（受信済みのサーバー最新とマージしてから保存） */
 let _remote=null; /* 最後に受信したサーバーのデータ（未保存の変更があるときも更新する） */
+/* Firebaseが受け付けない形（キーに . # $ / [ ] を含む、undefined、NaNなど）を取り除く。
+   1か所でも残っているとFirebaseは保存全体を拒否するため */
+let _lastSaveInfo={ok:null,at:0,msg:''};
+function _fbClean(v,path,bad){
+  if(v===undefined||typeof v==='function')return undefined;
+  if(typeof v==='number')return isFinite(v)?v:undefined;
+  if(v===null||typeof v!=='object')return v;
+  if(v instanceof Date)return isoDate(v);
+  if(Array.isArray(v))return v.map((x,i)=>{const c=_fbClean(x,path+'/'+i,bad);return c===undefined?null:c;});
+  const o={};
+  for(const k of Object.keys(v)){
+    if(!k||/[.#$\[\]\/\x00-\x1f\x7f]/.test(k)){bad.push(path+'/'+k);continue;}
+    const c=_fbClean(v[k],path+'/'+k,bad);
+    if(c!==undefined)o[k]=c;
+  }
+  return o;
+}
 function saveToFirebase(){
   if(IS_VIEW_MODE)return;
   /* 最初の受信前は保存しない（ブラウザに残った古いデータで上書きしないため） */
@@ -796,12 +822,25 @@ function saveToFirebase(){
   try{
     if(_base&&_remote)data=mergeData(_base,sent,_remote);
   }catch(e){console.warn('merge failed',e);data=sent;}
+  const bad=[];
+  data=_fbClean(data,'',bad);
+  if(bad.length)console.warn('保存できないキーを除外:',bad);
   const rev=_localRev;
   _inflight++;
   /* 15秒たっても保存が終わらなければ知らせる */
   const _wd=setTimeout(()=>{if(_ackRev<rev)showToast('保存が完了していません。通信状況を確認してください');},15000);
-  DB_REF.set(data).then(()=>{
+  let _p;
+  try{_p=DB_REF.set(data);}
+  catch(e){ /* 形式エラーはその場で例外になる → 保存中のまま止まらないようにする */
+    clearTimeout(_wd);_inflight--;_saveQueued=false;
+    _lastSaveInfo={ok:false,at:Date.now(),msg:String(e&&e.message||e)};
+    console.warn("Firebase save error:",e);
+    showToast('保存に失敗しました：'+_lastSaveInfo.msg.slice(0,80));
+    return;
+  }
+  _p.then(()=>{
     clearTimeout(_wd);
+    _lastSaveInfo={ok:true,at:Date.now(),msg:bad.length?'保存できない形式のため除外：'+bad.slice(0,5).join(', '):''};
     _inflight--;
     if(rev>_ackRev)_ackRev=rev;
     showAutoSave();
@@ -818,8 +857,9 @@ function saveToFirebase(){
     clearTimeout(_wd);
     _inflight--;
     _saveQueued=false;
+    _lastSaveInfo={ok:false,at:Date.now(),msg:String(e&&e.message||e)};
     console.warn("Firebase save error:",e);
-    showToast('保存に失敗しました。通信状況を確認してください');
+    showToast('保存に失敗しました：'+_lastSaveInfo.msg.slice(0,80));
   });
 }
 
@@ -871,7 +911,7 @@ function dailyBackup(){
   const key=isoDate(TODAY);
   if(_bkDoneDay===key)return;
   _bkDoneDay=key;
-  const data=_snapData(_base);
+  const data=_fbClean(_snapData(_base),'',[]);
   BK_REF.child('index/'+key).once('value').then(s=>{
     if(s.exists())return;
     return BK_REF.child('data/'+key).set(data)
@@ -1610,6 +1650,8 @@ function saveEditedProperty(name){
 
 /* ===== 工場別一覧：前回コピー時からの新規/変更を自動判定 ===== */
 let _factoryShown=[];
+/* Firebaseのキーに使えない文字（. など）を避けたキー */
+function _fsKey(id){return 'p'+String(id).replace(/[^0-9A-Za-z_-]/g,'_')}
 function factorySig(p){
   const pcs=(p.pcdates&&p.pcdates.length?p.pcdates:(p.pcdate?[p.pcdate]:[])).filter(Boolean).sort();
   return pcs.join(',')+'|'+(p.dodai||'')+'|'+(p.joto||'');
@@ -1618,7 +1660,8 @@ function factoryStatus(p){
   if(p.pcStatus==='なし')return{s:'',auto:false};
   if(p.pcStatus)return{s:p.pcStatus,auto:false};
   if(!state.factorySentAt)return{s:'',auto:false};
-  const prev=(state.factorySent||{})[p.id];
+  const fs=state.factorySent||{};
+  const prev=fs[_fsKey(p.id)]!==undefined?fs[_fsKey(p.id)]:fs[p.id];
   if(prev===undefined)return{s:'新規',auto:true};
   return{s:prev!==factorySig(p)?'変更':'',auto:true};
 }
@@ -1627,7 +1670,8 @@ function markFactorySent(){
   if(!state.factorySent)state.factorySent={};
   _factoryShown.forEach(id=>{
     const p=state.properties.find(x=>x.id===id);if(!p)return;
-    state.factorySent[id]=factorySig(p);
+    delete state.factorySent[id];
+    state.factorySent[_fsKey(id)]=factorySig(p);
     if(p.pcStatus)p.pcStatus='';
   });
   state.factorySentAt=Date.now();
@@ -2118,7 +2162,7 @@ function deleteProp(id){
   state.properties=state.properties.filter(p=>p.id!==id);
   /* この物件のセル入力・工場連絡の記録も削除 */
   Object.keys(state.cellTexts).forEach(k=>{if(k.startsWith(id+'_'))delete state.cellTexts[k];});
-  if(state.factorySent)delete state.factorySent[id];
+  if(state.factorySent){delete state.factorySent[id];delete state.factorySent[_fsKey(id)];}
   renderTable();scheduleAutoSave();
 }
 
@@ -2382,7 +2426,7 @@ function checkAutoDelete(){
       Object.keys(state.cellTexts).forEach(k=>{
         if(k.startsWith(id+'_'))delete state.cellTexts[k];
       });
-      if(state.factorySent)delete state.factorySent[id];
+      if(state.factorySent){delete state.factorySent[id];delete state.factorySent[_fsKey(id)];}
     });
     renderTable();
     scheduleAutoSave();
@@ -2577,7 +2621,7 @@ function openSettings(){
   renderMakerList();renderStaffLists();renderFactoryList();renderHolidayList();renderFactoryHolidayList();
   const sel=document.getElementById('autoDeleteWeeksSelect');
   if(sel) sel.value=String(state.autoDeleteWeeks||3);
-  renderEditorName();loadBackupList();
+  renderEditorName();loadBackupList();renderSaveStatus();
   document.getElementById('settingsModal').style.display='flex';
 }
 function renderMakerList(){
