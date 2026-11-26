@@ -24,8 +24,8 @@ function daysBefore(pc, n, unit, ctx) { const d = new Date(pc); if (unit !== 'bi
 const pcsOf = p => (list(p.pcdates).length ? list(p.pcdates) : (p.pcdate ? [p.pcdate] : [])).map(String).filter(Boolean).sort();
 function propAlerts(p, today, ctx) {
   const out = [], t = iso(today), cfg = ctx.cfg;
-  const ds = [...pcsOf(p), p.dodai, p.joto].filter(Boolean).map(String).sort();
-  if (ds.length && ds[ds.length - 1] < t) return out; /* 終わった物件 */
+  const pcAll = pcsOf(p);
+  if (pcAll.length && pcAll[pcAll.length - 1] < t) return out; /* PC着日が過ぎた物件は出さない */
   if (cfg.fc.on) {
     if (!p.finalCheck) out.push({ type: 'fc', blank: true });
     else { const fd = toDate(p.finalCheck); if (fd) { const n = countDays(fd, today, cfg.fc.unit, ctx); if (n >= cfg.fc.days) out.push({ type: 'fc', days: n }); } }
