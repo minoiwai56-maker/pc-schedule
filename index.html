@@ -486,7 +486,7 @@ body.test-mode .app-header{background:#fff4e0}
         </select>
       </div>
       <div class="form-group full">
-        <label>PC着日 <button type="button" class="btn btn-blue" style="padding:1px 8px;font-size:10px;margin-left:6px" onclick="addPcdateField()">＋追加</button></label>
+        <label onclick="if(event.target.tagName!=='BUTTON')event.preventDefault()">PC着日 <button type="button" class="btn btn-blue" style="padding:1px 8px;font-size:10px;margin-left:6px" onclick="addPcdateField()">＋追加</button></label>
         <div id="f_pcdates_wrap">
           <input type="date" class="f_pcdate_item" style="margin-bottom:3px;width:100%;border:1px solid #ccc;border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit">
         </div>
